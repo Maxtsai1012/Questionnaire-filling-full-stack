@@ -304,5 +304,3 @@ flowchart TD
 - **消除 N+1 查詢**：在 `StatisticsService` 中採用批次一次取回全問卷回答 (`findByQuestionIdIn`)，避免循環 SQL 查詢，極大提升統計計算效率。
 - **防止重複填答**：在 DB 層 (`uk_quiz_email`) 與 API 層雙重校驗同一個 Email 不能重複填寫同一張問卷。
 - **狀態權限驗證**：在 `AdminQuizService` 的修改與刪除 API 中加入狀態鎖定，進行中與已結束的問卷將強制拋出 `IllegalStateException` 防護。
-#   Q u e s t i o n n a i r e - f i l l i n g - f u l l - s t a c k  
- 
