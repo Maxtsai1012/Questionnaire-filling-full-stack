@@ -23,11 +23,20 @@ public class QuizResponse {
     @Column(name = "quiz_id", nullable = false)
     private Integer quizId;
 
+    @Column(name = "user_id")
+    private Integer userId;
+
     @Column(name = "respondent_name", nullable = false, length = 100)
     private String respondentName;
 
+    @Column(name = "normalized_name", length = 100)
+    private String normalizedName;
+
     @Column(nullable = false, length = 20)
     private String phone;
+
+    @Column(name = "normalized_phone", length = 20)
+    private String normalizedPhone;
 
     @Column(nullable = false, length = 255)
     private String email;

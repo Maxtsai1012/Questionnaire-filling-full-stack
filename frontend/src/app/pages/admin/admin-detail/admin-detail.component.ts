@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminQuizService } from '../../../core/services/admin-quiz.service';
-import { QuizService } from '../../../core/services/quiz.service';
 import { QuizDetail, QuizStatistics } from '../../../core/models/survey.model';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-detail',
@@ -10,8 +10,8 @@ import { QuizDetail, QuizStatistics } from '../../../core/models/survey.model';
     <div class="container" *ngIf="quiz">
       <div class="page-header">
         <div>
-          <h1 class="page-title">{{ quiz.name }} (後台內頁 - 唯讀)</h1>
-          <p style="color: #64748b; margin-top: 4px;">此問卷狀態為「{{ quiz.statusLabel }}」，不可修改或刪除。</p>
+          <h1 class="page-title">{{ quiz.name }} ({{ auth.isAdmin ? '後台' : '我的問卷' }} - 唯讀)</h1>
+          <p style="color: #64748b; margin-top: 4px;">在此查看問卷題目、回答與統計。</p>
         </div>
         <button class="btn btn-outline" (click)="onReturnToList()">回列表</button>
       </div>
@@ -61,7 +61,7 @@ import { QuizDetail, QuizStatistics } from '../../../core/models/survey.model';
 
       <!-- TAB: FEEDBACK -->
       <div *ngIf="currentTab === 'feedback'" class="card">
-        <app-admin-feedback [quizId]="quizId"></app-admin-feedback>
+        <app-admin-feedback [quizId]="quizId" [isAdmin]="auth.isAdmin"></app-admin-feedback>
       </div>
 
       <!-- TAB: STATS -->
@@ -125,8 +125,8 @@ export class AdminDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private quizService: QuizService,
-    private adminQuizService: AdminQuizService
+    private adminQuizService: AdminQuizService,
+    public readonly auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -142,7 +142,7 @@ export class AdminDetailComponent implements OnInit {
   }
 
   loadQuiz(): void {
-    this.quizService.getFrontQuizDetail(this.quizId).subscribe(res => {
+    this.adminQuizService.getManagedQuizDetail(this.quizId, this.auth.isAdmin).subscribe(res => {
       if (res.success) {
         this.quiz = res.data;
       }
@@ -150,7 +150,7 @@ export class AdminDetailComponent implements OnInit {
   }
 
   loadStats(): void {
-    this.adminQuizService.getAdminStatistics(this.quizId).subscribe(res => {
+    this.adminQuizService.getManagedStatistics(this.quizId, this.auth.isAdmin).subscribe(res => {
       if (res.success && res.data) {
         this.stats = res.data;
         if (this.stats.questions) {
@@ -165,6 +165,6 @@ export class AdminDetailComponent implements OnInit {
   }
 
   onReturnToList(): void {
-    this.router.navigate(['/admin']);
+    this.router.navigate([this.auth.isAdmin ? '/admin' : '/member/quizzes']);
   }
 }

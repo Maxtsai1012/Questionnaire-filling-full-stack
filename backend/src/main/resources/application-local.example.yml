@@ -1,0 +1,20 @@
+# Copy this file to application-local.yml and replace only the placeholders.
+# application-local.yml is ignored by Git and must never contain shared credentials.
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/survey_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Taipei&allowPublicKeyRetrieval=true&useSSL=false
+    username: "root"
+    password: "root"
+  jpa:
+    hibernate:
+      # Local verification must not create, drop, or mutate the existing schema.
+      ddl-auto: validate
+app:
+  security:
+    password:
+      # BCrypt work factor; production/local default is 12.
+      bcrypt-strength: ${BCRYPT_STRENGTH:12}
+    jwt:
+      # Required environment variable; use at least 32 UTF-8 bytes.
+      secret: ${JWT_SECRET}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}

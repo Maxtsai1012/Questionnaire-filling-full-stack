@@ -27,6 +27,8 @@ export interface QuizListItem {
   canDelete?: boolean;
   canViewStats?: boolean;
   canFill?: boolean;
+  ownerId?: number | null;
+  ownerName?: string | null;
 }
 
 export interface QuizDetail {
@@ -134,6 +136,8 @@ export interface PageResponse<T> {
 
 export interface ApiResponse<T> {
   success: boolean;
+  code?: string;
   message: string;
   data: T;
+  fieldErrors?: Record<string, string>;
 }

@@ -8,6 +8,7 @@ Chart.register(...registerables);
   selector: 'app-chart-view',
   template: `
     <div class="chart-container">
+      <div class="chart-empty" *ngIf="!hasData">目前尚無統計資料</div>
       <canvas #chartCanvas></canvas>
     </div>
   `,
@@ -17,7 +18,14 @@ Chart.register(...registerables);
       width: 100%;
       max-width: 480px;
       margin: 16px auto;
-      height: 280px;
+      height: 360px;
+    }
+    .chart-empty {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: #94a3b8;
+      font-weight: 600;
     }
   `]
 })
@@ -29,10 +37,14 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
   private chart: Chart | null = null;
 
   private colors = [
-    '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
-    '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16',
+    '#4f6edb', '#b6dc22', '#555978', '#ff9749',
+    '#18a5d1', '#ec4899', '#8b5cf6', '#10b981',
     '#64748b', '#d97706'
   ];
+
+  get hasData(): boolean {
+    return this.options.some(option => option.count > 0);
+  }
 
   ngAfterViewInit(): void {
     this.renderChart();
@@ -55,6 +67,7 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.chart) {
       this.chart.destroy();
     }
+    if (!this.hasData) return;
 
     const labels = this.options.map(o => o.label);
     const data = this.options.map(o => o.count);
@@ -64,25 +77,31 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     if (this.chartType === 'pie') {
       this.chart = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
           labels: labels,
           datasets: [{
             data: data,
             backgroundColor: this.colors.slice(0, labels.length),
-            borderWidth: 2,
-            borderColor: '#ffffff'
+            borderWidth: 8,
+            borderColor: '#ffffff',
+            borderRadius: 10,
+            spacing: 4,
+            hoverOffset: 8
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          cutout: '55%',
           plugins: {
             legend: {
-              position: 'bottom',
+              position: 'top',
               labels: {
                 font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 },
-                padding: 14
+                padding: 14,
+                usePointStyle: true,
+                pointStyle: 'rectRounded'
               }
             },
             tooltip: {

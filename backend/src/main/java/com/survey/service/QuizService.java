@@ -24,6 +24,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import com.survey.common.RequestValidationException;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class QuizService {
     private final QuizResponseRepository responseRepository;
     private final ResponseAnswerRepository answerRepository;
     private final ObjectMapper objectMapper;
+    private final SubmissionEligibilityService submissionEligibilityService;
 
     @Transactional(readOnly = true)
     public Page<QuizListDto> getFrontQuizzes(String name, LocalDate startDate, LocalDate endDate, int page, int size) {
@@ -61,8 +66,8 @@ public class QuizService {
 
     @Transactional(readOnly = true)
     public QuizDetailDto getFrontQuizDetail(Integer id) {
-        Quiz quiz = quizRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("問卷不存在 (ID: " + id + ")"));
+        Quiz quiz = quizRepository.findByIdAndIsPublishedTrue(id)
+                .orElseThrow(() -> new com.survey.common.ResourceNotFoundException("問卷不存在"));
 
         QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
 
@@ -93,11 +98,11 @@ public class QuizService {
 
     @Transactional(readOnly = true)
     public boolean checkEmailExists(Integer quizId, String email) {
-        return responseRepository.existsByQuizIdAndEmail(quizId, email);
+        return responseRepository.existsByQuizIdAndEmailIgnoreCase(quizId, email.trim());
     }
 
     @Transactional
-    public Integer submitResponse(ResponseSubmitDto req) {
+    public Integer submitResponse(ResponseSubmitDto req, Integer userId) {
         Quiz quiz = quizRepository.findById(req.getQuizId())
                 .orElseThrow(() -> new IllegalArgumentException("問卷不存在"));
 
@@ -106,13 +111,16 @@ public class QuizService {
             throw new IllegalStateException("此問卷目前非開放填寫狀態 (當前狀態: " + status.getLabel() + ")");
         }
 
-        if (responseRepository.existsByQuizIdAndEmail(req.getQuizId(), req.getEmail())) {
-            throw new IllegalArgumentException("同一個 Email (" + req.getEmail() + ") 無法重複填寫同一張問卷！");
-        }
+        req.setRespondentName(req.getRespondentName().trim().replaceAll("\\s+", " "));
+        req.setPhone(submissionEligibilityService.normalizePhone(req.getPhone()));
+        req.setEmail(req.getEmail().trim());
+        validateAnswers(req);
+        submissionEligibilityService.ensureNotDuplicate(req.getQuizId(), req.getEmail());
 
         // Save Response
         QuizResponse response = new QuizResponse();
         response.setQuizId(req.getQuizId());
+        submissionEligibilityService.applyIdentity(response, userId, req.getRespondentName(), req.getPhone());
         response.setRespondentName(req.getRespondentName());
         response.setPhone(req.getPhone());
         response.setEmail(req.getEmail());
@@ -133,6 +141,41 @@ public class QuizService {
         }
 
         return savedResponse.getId();
+    }
+
+    private void validateAnswers(ResponseSubmitDto req) {
+        List<QuizQuestion> questions = questionRepository.findByQuizIdOrderBySortOrderAscIdAsc(req.getQuizId());
+        Map<Integer, AnswerSubmitDto> submitted = req.getAnswers() == null ? Collections.emptyMap()
+                : req.getAnswers().stream()
+                    .filter(a -> a.getQuestionId() != null)
+                    .collect(Collectors.toMap(AnswerSubmitDto::getQuestionId, a -> a, (a, b) -> a));
+        Set<Integer> validIds = questions.stream().map(QuizQuestion::getId).collect(Collectors.toSet());
+        Map<String, String> errors = new LinkedHashMap<>();
+
+        for (Integer submittedId : submitted.keySet()) {
+            if (!validIds.contains(submittedId)) {
+                errors.put("answers", "問卷答案包含不存在的題目");
+            }
+        }
+        for (QuizQuestion question : questions) {
+            String value = submitted.containsKey(question.getId()) ? submitted.get(question.getId()).getAnswer() : "";
+            value = value == null ? "" : value.trim();
+            if (Boolean.TRUE.equals(question.getIsRequired()) && value.isEmpty()) {
+                errors.put("question_" + question.getId(), "此題為必填項目!!");
+                continue;
+            }
+            if (!value.isEmpty() && !"T".equals(question.getType())) {
+                Set<String> allowed = parseOptionsJson(question.getOptions()).stream()
+                        .map(OptionDto::getOptionName).collect(Collectors.toSet());
+                String[] selected = "M".equals(question.getType()) ? value.split(";") : new String[]{value};
+                if (java.util.Arrays.stream(selected).anyMatch(option -> !allowed.contains(option))) {
+                    errors.put("question_" + question.getId(), "答案選項不合法!!");
+                }
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new RequestValidationException(errors);
+        }
     }
 
     private List<OptionDto> parseOptionsJson(String json) {

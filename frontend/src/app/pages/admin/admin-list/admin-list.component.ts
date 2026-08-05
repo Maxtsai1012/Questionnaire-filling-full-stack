@@ -2,14 +2,17 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminQuizService } from '../../../core/services/admin-quiz.service';
 import { QuizListItem } from '../../../core/models/survey.model';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-list',
   template: `
     <div class="container">
       <div class="page-header">
-        <h1 class="page-title">問卷管理列表 (後台)</h1>
+        <h1 class="page-title">{{ auth.isAdmin ? '問卷管理列表 (後台)' : '我的問卷' }}</h1>
       </div>
+      <div class="admin-status-note">目前顯示全部狀態：未發佈、尚未開始、進行中、已結束</div>
+      <div class="field-error admin-load-error" *ngIf="loadError">{{ loadError }}</div>
 
       <!-- Search Section -->
       <div class="search-card">
@@ -73,11 +76,11 @@ import { QuizListItem } from '../../../core/models/survey.model';
               <td>#{{ quiz.id }}</td>
               <td>
                 <!-- Editable link if UNPUBLISHED or NOT_STARTED -->
-                <a *ngIf="quiz.canEdit" [routerLink]="['/admin', quiz.id, 'edit']" style="font-weight: 600;">
+                <a *ngIf="quiz.canEdit" [routerLink]="auth.isAdmin ? ['/admin', quiz.id, 'edit'] : ['/member/quizzes', quiz.id, 'edit']" style="font-weight: 600;">
                   {{ quiz.name }}
                 </a>
                 <!-- Read-only link if IN_PROGRESS or ENDED -->
-                <a *ngIf="!quiz.canEdit" [routerLink]="['/admin', quiz.id, 'detail']" style="font-weight: 600; color: #475569;">
+                <a *ngIf="!quiz.canEdit" [routerLink]="auth.isAdmin ? ['/admin', quiz.id, 'detail'] : ['/member/quizzes', quiz.id, 'detail']" style="font-weight: 600; color: #475569;">
                   {{ quiz.name }} (唯讀)
                 </a>
               </td>
@@ -94,7 +97,7 @@ import { QuizListItem } from '../../../core/models/survey.model';
               <td>{{ quiz.startDate }}</td>
               <td>{{ quiz.endDate }}</td>
               <td style="text-align: center;">
-                <a *ngIf="quiz.canViewStats" [routerLink]="['/admin', quiz.id, 'detail']" [queryParams]="{tab: 'stats'}" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.825rem;">
+                <a *ngIf="quiz.canViewStats" [routerLink]="auth.isAdmin ? ['/admin', quiz.id, 'detail'] : ['/member/quizzes', quiz.id, 'detail']" [queryParams]="{tab: 'stats'}" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.825rem;">
                   前往
                 </a>
                 <span *ngIf="!quiz.canViewStats" style="color: #cbd5e1; font-size: 0.85rem;">-</span>
@@ -132,10 +135,12 @@ export class AdminListComponent implements OnInit {
   pageSize = 10;
   totalPages = 0;
   pagesArray: number[] = [];
+  loadError = '';
 
   constructor(
     private adminQuizService: AdminQuizService,
-    private router: Router
+    private router: Router,
+    public readonly auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -143,23 +148,46 @@ export class AdminListComponent implements OnInit {
   }
 
   loadQuizzes(): void {
-    this.adminQuizService.getAdminQuizzes(
+    this.loadError = '';
+    const request$ = this.auth.isAdmin ? this.adminQuizService.getAdminQuizzes(
       this.searchName.trim() || undefined,
       this.startDate || undefined,
       this.endDate || undefined,
       this.currentPage,
       this.pageSize
-    ).subscribe(res => {
+    ) : this.adminQuizService.getMemberQuizzes(
+      this.searchName.trim() || undefined,
+      this.startDate || undefined,
+      this.endDate || undefined,
+      this.currentPage,
+      this.pageSize
+    );
+    request$.subscribe({next: res => {
       if (res.success && res.data) {
         this.quizzes = res.data.content;
         this.totalPages = res.data.totalPages;
         this.pagesArray = Array.from({ length: this.totalPages }, (_, i) => i);
         this.selectedIds = [];
+      } else {
+        this.loadError = res.message || '後台問卷載入失敗！';
       }
-    });
+    }, error: err => {
+      this.quizzes = [];
+      this.loadError = err.status === 401
+        ? '登入狀態已失效，請重新登入。'
+        : (err.error?.message || '後台問卷載入失敗，請確認後端與資料庫連線。');
+      if (err.status === 401) {
+        this.auth.clearSession();
+        this.router.navigate(['/login'], { queryParams: { returnUrl: this.auth.isAdmin ? '/admin' : '/member/quizzes' } });
+      }
+    }});
   }
 
   onSearch(): void {
+    if (this.startDate && this.endDate && this.endDate < this.startDate) {
+      this.loadError = '問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!';
+      return;
+    }
     this.currentPage = 0;
     this.loadQuizzes();
   }
@@ -201,14 +229,17 @@ export class AdminListComponent implements OnInit {
   }
 
   onCreateNew(): void {
-    this.router.navigate(['/admin/new']);
+    this.router.navigate([this.auth.isAdmin ? '/admin/new' : '/member/quizzes/new']);
   }
 
   onDeleteSelected(): void {
     if (this.selectedIds.length === 0) return;
     if (!confirm(`確定要刪除選取的 ${this.selectedIds.length} 筆問卷嗎？`)) return;
 
-    this.adminQuizService.deleteQuizzes(this.selectedIds).subscribe({
+    const request$ = this.auth.isAdmin
+      ? this.adminQuizService.deleteQuizzes(this.selectedIds)
+      : this.adminQuizService.deleteMemberQuizzes(this.selectedIds);
+    request$.subscribe({
       next: (res) => {
         if (res.success) {
           alert('問卷刪除成功！');

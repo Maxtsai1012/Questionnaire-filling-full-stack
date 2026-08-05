@@ -53,4 +53,15 @@ export class QuizService {
   clearDraftSession(quizId: number): void {
     sessionStorage.removeItem(`quiz_draft_${quizId}`);
   }
+
+  saveServerErrorsToSession(quizId: number, errors: Record<string, string>): void {
+    sessionStorage.setItem(`quiz_errors_${quizId}`, JSON.stringify(errors));
+  }
+
+  takeServerErrorsFromSession(quizId: number): Record<string, string> {
+    const key = `quiz_errors_${quizId}`;
+    const raw = sessionStorage.getItem(key);
+    sessionStorage.removeItem(key);
+    return raw ? JSON.parse(raw) : {};
+  }
 }

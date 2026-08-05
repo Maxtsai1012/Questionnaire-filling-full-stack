@@ -115,6 +115,10 @@ export class QuizConfirmComponent implements OnInit {
       error: (err) => {
         this.submitting = false;
         this.errorMessage = err.error?.message || '提交失敗，系統發生錯誤！';
+        if (err.error?.fieldErrors) {
+          this.quizService.saveServerErrorsToSession(this.quizId, err.error.fieldErrors);
+          this.router.navigate(['/quiz', this.quizId, 'form']);
+        }
       }
     });
   }

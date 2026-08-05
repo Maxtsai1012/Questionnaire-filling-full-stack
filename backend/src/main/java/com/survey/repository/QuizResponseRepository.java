@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface QuizResponseRepository extends JpaRepository<QuizResponse, Integer> {
-    boolean existsByQuizIdAndEmail(Integer quizId, String email);
+    boolean existsByQuizIdAndEmailIgnoreCase(Integer quizId, String email);
     int countByQuizId(Integer quizId);
     Page<QuizResponse> findByQuizIdOrderByIdDesc(Integer quizId, Pageable pageable);
     List<QuizResponse> findByQuizIdOrderByIdDesc(Integer quizId);

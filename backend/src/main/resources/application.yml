@@ -23,3 +23,11 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Taipei
+
+app:
+  security:
+    password:
+      bcrypt-strength: ${BCRYPT_STRENGTH:12}
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}

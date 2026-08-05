@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -18,6 +18,11 @@ import { AdminListComponent } from './pages/admin/admin-list/admin-list.componen
 import { AdminEditComponent } from './pages/admin/admin-edit/admin-edit.component';
 import { AdminDetailComponent } from './pages/admin/admin-detail/admin-detail.component';
 import { AdminFeedbackComponent } from './pages/admin/admin-feedback/admin-feedback.component';
+import { LoginComponent } from './pages/auth/login.component';
+import { RegisterComponent } from './pages/auth/register.component';
+import { AuthInterceptor } from './core/auth.interceptor';
+import { ProfileComponent } from './pages/member/profile.component';
+import { HomeComponent } from './pages/home/home.component';
 
 @NgModule({
   declarations: [
@@ -31,7 +36,11 @@ import { AdminFeedbackComponent } from './pages/admin/admin-feedback/admin-feedb
     AdminListComponent,
     AdminEditComponent,
     AdminDetailComponent,
-    AdminFeedbackComponent
+    AdminFeedbackComponent,
+    LoginComponent,
+    RegisterComponent,
+    ProfileComponent,
+    HomeComponent
   ],
   imports: [
     BrowserModule,
@@ -39,7 +48,7 @@ import { AdminFeedbackComponent } from './pages/admin/admin-feedback/admin-feedb
     FormsModule,
     AppRoutingModule
   ],
-  providers: [],
+  providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

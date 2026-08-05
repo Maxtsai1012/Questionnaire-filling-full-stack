@@ -1,0 +1,2 @@
+ALTER TABLE app_user
+    MODIFY COLUMN password_hash VARCHAR(255) NOT NULL;

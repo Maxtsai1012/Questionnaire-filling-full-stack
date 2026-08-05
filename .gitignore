@@ -6,6 +6,14 @@ frontend/.angular/
 # Java / Maven build output
 backend/target/
 
+# Local secrets and environment overrides
+application-local.yml
+application-local.properties
+application-secret.yml
+application-secret.properties
+.env
+.env.*
+
 # IDE & OS files
 .idea/
 .vscode/

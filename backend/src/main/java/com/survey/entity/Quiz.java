@@ -34,6 +34,10 @@ public class Quiz {
     @Column(name = "is_published", nullable = false)
     private Boolean isPublished = false;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 

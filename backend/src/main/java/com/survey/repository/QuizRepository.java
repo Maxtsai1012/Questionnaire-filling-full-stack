@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Integer> {
@@ -32,4 +33,19 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
                                  @Param("startDate") LocalDate startDate,
                                  @Param("endDate") LocalDate endDate,
                                  Pageable pageable);
+
+    @Query("SELECT q FROM Quiz q WHERE q.owner.id = :ownerId " +
+           "AND (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
+           "AND (:startDate IS NULL OR q.startDate >= :startDate) " +
+           "AND (:endDate IS NULL OR q.endDate <= :endDate) " +
+           "ORDER BY q.id DESC")
+    Page<Quiz> searchOwnedQuizzes(@Param("ownerId") Integer ownerId,
+                                  @Param("name") String name,
+                                  @Param("startDate") LocalDate startDate,
+                                  @Param("endDate") LocalDate endDate,
+                                  Pageable pageable);
+
+    Optional<Quiz> findByIdAndOwnerId(Integer id, Integer ownerId);
+
+    Optional<Quiz> findByIdAndIsPublishedTrue(Integer id);
 }

@@ -31,6 +31,28 @@ public class StatisticsService {
     public QuizStatisticsDto getQuizStatistics(Integer quizId) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new IllegalArgumentException("問卷不存在 (ID: " + quizId + ")"));
+        return buildStatistics(quiz);
+    }
+
+    @Transactional(readOnly = true)
+    public QuizStatisticsDto getPublicQuizStatistics(Integer quizId) {
+        Quiz quiz = quizRepository.findByIdAndIsPublishedTrue(quizId)
+                .orElseThrow(() -> new com.survey.common.ResourceNotFoundException("問卷不存在"));
+        return buildStatistics(quiz);
+    }
+
+    @Transactional(readOnly = true)
+    public QuizStatisticsDto getManagedQuizStatistics(Integer quizId, Integer actorId, boolean admin) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new com.survey.common.ResourceNotFoundException("問卷不存在"));
+        if (!admin && (quiz.getOwner() == null || !quiz.getOwner().getId().equals(actorId))) {
+            throw new SecurityException("無權查看此問卷統計");
+        }
+        return buildStatistics(quiz);
+    }
+
+    private QuizStatisticsDto buildStatistics(Quiz quiz) {
+        Integer quizId = quiz.getId();
 
         int totalResponses = responseRepository.countByQuizId(quizId);
         List<QuizQuestion> questions = questionRepository.findByQuizIdOrderBySortOrderAscIdAsc(quizId);

@@ -10,6 +10,18 @@ DROP TABLE IF EXISTS response_answer;
 DROP TABLE IF EXISTS quiz_response;
 DROP TABLE IF EXISTS quiz_question;
 DROP TABLE IF EXISTS quiz;
+DROP TABLE IF EXISTS app_user;
+
+CREATE TABLE app_user (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    token_version INT NOT NULL DEFAULT 0,
+    role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    UNIQUE KEY uk_app_user_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1. 問卷主表
 CREATE TABLE quiz (
@@ -19,11 +31,14 @@ CREATE TABLE quiz (
     start_date DATE NOT NULL COMMENT '開始日期',
     end_date DATE NOT NULL COMMENT '結束日期',
     is_published BOOLEAN DEFAULT FALSE COMMENT '是否發布 (true: 發布, false: 僅儲存草稿)',
+    owner_id INT NULL COMMENT '建立者會員 ID；NULL 為 Legacy/System 問卷',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_quiz_dates (start_date, end_date),
     INDEX idx_quiz_published (is_published),
-    INDEX idx_quiz_name (name(50))
+    INDEX idx_quiz_owner (owner_id),
+    INDEX idx_quiz_name (name(50)),
+    CONSTRAINT fk_quiz_owner FOREIGN KEY (owner_id) REFERENCES app_user(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. 問卷題目表
@@ -43,12 +58,16 @@ CREATE TABLE quiz_question (
 CREATE TABLE quiz_response (
     id INT AUTO_INCREMENT PRIMARY KEY,
     quiz_id INT NOT NULL,
+    user_id INT NULL COMMENT '登入會員 ID；訪客為 NULL',
     respondent_name VARCHAR(100) NOT NULL COMMENT '姓名',
+    normalized_name VARCHAR(100) NULL COMMENT '訪客正規化姓名；會員為 NULL',
     phone VARCHAR(20) NOT NULL COMMENT '手機',
+    normalized_phone VARCHAR(20) NULL COMMENT '訪客正規化手機；會員為 NULL',
     email VARCHAR(255) NOT NULL COMMENT 'Email',
     age INT COMMENT '年齡',
     submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES app_user(id),
     UNIQUE KEY uk_quiz_email (quiz_id, email),
     INDEX idx_response_quiz (quiz_id, id DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -82,11 +101,11 @@ VALUES
 (5, 2, '任何寶貴建議', 'T', FALSE, NULL, 2);
 
 -- 插入測試填答資料
-INSERT INTO quiz_response (id, quiz_id, respondent_name, phone, email, age, submitted_at)
+INSERT INTO quiz_response (id, quiz_id, respondent_name, normalized_name, phone, normalized_phone, email, age, submitted_at)
 VALUES 
-(1, 1, '王大明', '0900000000', 'happyhappyhappy@gmail.com', 23, '2026-08-02 12:30:00'),
-(2, 1, '徐小花', '0911222333', 'hsu_flower@example.com', 20, '2026-08-02 13:45:00'),
-(3, 1, '黃阿狗', '0988777666', 'doggy_yellow@example.com', 25, '2026-08-02 14:20:00');
+(1, 1, '王大明', '王大明', '0900000000', '0900000000', 'happyhappyhappy@gmail.com', 23, '2026-08-02 12:30:00'),
+(2, 1, '徐小花', '徐小花', '0911222333', '0911222333', 'hsu_flower@example.com', 20, '2026-08-02 13:45:00'),
+(3, 1, '黃阿狗', '黃阿狗', '0988777666', '0988777666', 'doggy_yellow@example.com', 25, '2026-08-02 14:20:00');
 
 INSERT INTO response_answer (response_id, question_id, answer)
 VALUES 

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizService } from '../../../core/services/quiz.service';
 import { AnswerSubmit, QuestionSave, QuizDetail, ResponseSubmit } from '../../../core/models/survey.model';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-quiz-form',
@@ -25,22 +26,26 @@ import { AnswerSubmit, QuestionSave, QuizDetail, ResponseSubmit } from '../../..
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
           <div class="form-group">
             <label>姓名 <span style="color: #ef4444;">*</span></label>
-            <input type="text" class="form-control" [(ngModel)]="respondentName" placeholder="請輸入真實姓名" />
+            <input type="text" class="form-control" [(ngModel)]="respondentName" [readonly]="!!auth.user" (ngModelChange)="clearFieldError('respondentName')" placeholder="請輸入真實姓名" />
+            <div class="field-error" *ngIf="fieldErrors['respondentName']">{{ fieldErrors['respondentName'] }}</div>
           </div>
 
           <div class="form-group">
             <label>手機 <span style="color: #ef4444;">*</span></label>
-            <input type="text" class="form-control" [(ngModel)]="phone" placeholder="例如：0900000000" />
+            <input type="text" class="form-control" [(ngModel)]="phone" [readonly]="!!auth.user" (ngModelChange)="clearFieldError('phone')" placeholder="例如：0900000000" />
+            <div class="field-error" *ngIf="fieldErrors['phone']">{{ fieldErrors['phone'] }}</div>
           </div>
 
           <div class="form-group">
             <label>E-mail <span style="color: #ef4444;">*</span></label>
-            <input type="email" class="form-control" [(ngModel)]="email" placeholder="example@email.com" />
+            <input type="email" class="form-control" [(ngModel)]="email" [readonly]="!!auth.user" (ngModelChange)="clearFieldError('email')" placeholder="example@email.com" />
+            <div class="field-error" *ngIf="fieldErrors['email']">{{ fieldErrors['email'] }}</div>
           </div>
 
           <div class="form-group">
             <label>年齡</label>
-            <input type="number" class="form-control" [(ngModel)]="age" placeholder="請輸入年齡" />
+            <input type="number" min="0" class="form-control" [(ngModel)]="age" (ngModelChange)="clearFieldError('age')" placeholder="請輸入年齡" />
+            <div class="field-error" *ngIf="fieldErrors['age']">{{ fieldErrors['age'] }}</div>
           </div>
         </div>
 
@@ -60,7 +65,7 @@ import { AnswerSubmit, QuestionSave, QuizDetail, ResponseSubmit } from '../../..
             <label *ngFor="let opt of q.options" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
               <input type="radio" [name]="'question_' + q.questId" [value]="opt.optionName"
                      [checked]="singleAnswers[q.questId!] === opt.optionName"
-                     (change)="singleAnswers[q.questId!] = opt.optionName" />
+                     (change)="singleAnswers[q.questId!] = opt.optionName; clearFieldError('question_' + q.questId)" />
               {{ opt.optionName }}
             </label>
           </div>
@@ -77,8 +82,9 @@ import { AnswerSubmit, QuestionSave, QuizDetail, ResponseSubmit } from '../../..
 
           <!-- Text (T) -->
           <div *ngIf="q.type === 'T'">
-            <textarea class="form-control" [(ngModel)]="textAnswers[q.questId!]" placeholder="請輸入說明與理由..."></textarea>
+            <textarea class="form-control" [(ngModel)]="textAnswers[q.questId!]" (ngModelChange)="clearFieldError('question_' + q.questId)" placeholder="請輸入說明與理由..."></textarea>
           </div>
+          <div class="field-error" *ngIf="fieldErrors['question_' + q.questId]">{{ fieldErrors['question_' + q.questId] }}</div>
         </div>
 
         <div *ngIf="errorMessage" style="color: #ef4444; font-weight: 600; margin-bottom: 16px; background: #fee2e2; padding: 10px 16px; border-radius: 6px;">
@@ -108,15 +114,22 @@ export class QuizFormComponent implements OnInit {
   textAnswers: { [questId: number]: string } = {};
 
   errorMessage = '';
+  fieldErrors: Record<string, string> = {};
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private quizService: QuizService
+    private quizService: QuizService,
+    public auth: AuthService
   ) {}
 
   ngOnInit(): void {
     this.quizId = +this.route.snapshot.paramMap.get('id')!;
+    if (this.auth.user) {
+      this.respondentName = this.auth.user.name;
+      this.phone = this.auth.user.phone;
+      this.email = this.auth.user.email;
+    }
     this.loadQuizDetail();
   }
 
@@ -130,11 +143,14 @@ export class QuizFormComponent implements OnInit {
   }
 
   restoreDraft(): void {
+    this.fieldErrors = this.quizService.takeServerErrorsFromSession(this.quizId);
     const draft = this.quizService.getDraftFromSession(this.quizId);
     if (draft) {
-      this.respondentName = draft.respondentName || '';
-      this.phone = draft.phone || '';
-      this.email = draft.email || '';
+      if (!this.auth.user) {
+        this.respondentName = draft.respondentName || '';
+        this.phone = draft.phone || '';
+        this.email = draft.email || '';
+      }
       this.age = draft.age || null;
 
       if (draft.answers && this.quiz) {
@@ -170,55 +186,48 @@ export class QuizFormComponent implements OnInit {
     } else {
       list.push(optionName);
     }
+    this.clearFieldError(`question_${questId}`);
+  }
+
+  clearFieldError(field: string): void {
+    if (this.fieldErrors[field]) {
+      delete this.fieldErrors[field];
+    }
   }
 
   onSubmit(): void {
     this.errorMessage = '';
-
-    if (!this.respondentName.trim()) {
-      this.errorMessage = '請填寫姓名！';
-      return;
-    }
-    if (!this.phone.trim()) {
-      this.errorMessage = '請填寫手機號碼！';
-      return;
-    }
-    if (!this.email.trim()) {
-      this.errorMessage = '請填寫 Email！';
-      return;
-    }
-
+    this.fieldErrors = {};
+    const normalizedPhone = this.phone.replace(/[\s-]/g, '');
+    const nameRegex = /^[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+(?: [\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+)*$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.email.trim())) {
-      this.errorMessage = 'Email 格式不正確！';
-      return;
-    }
+    if (!this.respondentName.trim() || !nameRegex.test(this.respondentName.trim().replace(/\s+/g, ' '))) this.fieldErrors['respondentName'] = '只允許填寫中文和英文!!';
+    if (!/^09\d{8}$/.test(normalizedPhone)) this.fieldErrors['phone'] = '手機格式不符!!';
+    if (!emailRegex.test(this.email.trim())) this.fieldErrors['email'] = '信箱格式不符!!';
+    if (this.age !== null && this.age < 0) this.fieldErrors['age'] = '年齡不得為負數!!';
 
     // Check required questions
     if (this.quiz) {
       for (const q of this.quiz.questions) {
         if (q.need) {
           if (q.type === 'Q' && !this.singleAnswers[q.questId!]) {
-            this.errorMessage = `問題「${q.questName}」為必填項目！`;
-            return;
+            this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
           }
           if (q.type === 'M' && (!this.multiAnswers[q.questId!] || this.multiAnswers[q.questId!].length === 0)) {
-            this.errorMessage = `問題「${q.questName}」為必填項目！`;
-            return;
+            this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
           }
           if (q.type === 'T' && (!this.textAnswers[q.questId!] || !this.textAnswers[q.questId!].trim())) {
-            this.errorMessage = `問題「${q.questName}」為必填項目！`;
-            return;
+            this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
           }
         }
       }
     }
 
-    // Check email duplication
-    this.quizService.checkEmailExists(this.quizId, this.email.trim()).subscribe(res => {
-      if (res.success && res.data) {
-        this.errorMessage = `Email 「${this.email.trim()}」 已經填寫過此問卷，無法重複填寫！`;
-      } else {
+    if (Object.keys(this.fieldErrors).length > 0) {
+      this.errorMessage = '資料內容有誤，請您修改後再送出!!';
+      return;
+    }
+
         // Collect answers
         const answers: AnswerSubmit[] = [];
         if (this.quiz) {
@@ -238,7 +247,7 @@ export class QuizFormComponent implements OnInit {
         const draftData: ResponseSubmit = {
           quizId: this.quizId,
           respondentName: this.respondentName.trim(),
-          phone: this.phone.trim(),
+          phone: normalizedPhone,
           email: this.email.trim(),
           age: this.age || undefined,
           answers: answers
@@ -248,8 +257,6 @@ export class QuizFormComponent implements OnInit {
         this.quizService.saveDraftToSession(this.quizId, draftData);
         // Navigate to Confirm Page
         this.router.navigate(['/quiz', this.quizId, 'confirm']);
-      }
-    });
   }
 
   onCancel(): void {

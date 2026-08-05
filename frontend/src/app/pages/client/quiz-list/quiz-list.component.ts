@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { QuizService } from '../../../core/services/quiz.service';
 import { QuizListItem } from '../../../core/models/survey.model';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-quiz-list',
@@ -8,6 +10,7 @@ import { QuizListItem } from '../../../core/models/survey.model';
     <div class="container">
       <div class="page-header">
         <h1 class="page-title">問卷列表 (前台)</h1>
+        <button class="btn btn-primary" (click)="createQuiz()">新增問卷</button>
       </div>
 
       <!-- Search Section -->
@@ -108,7 +111,16 @@ export class QuizListComponent implements OnInit {
   totalPages = 0;
   pagesArray: number[] = [];
 
-  constructor(private quizService: QuizService) {}
+  constructor(private quizService: QuizService, private auth: AuthService, private router: Router) {}
+
+  createQuiz(): void {
+    if (!this.auth.user) {
+      alert('請登入建立表單!!');
+      this.router.navigate(['/login'], { queryParams: { returnUrl: '/member/quizzes/new' } });
+      return;
+    }
+    this.router.navigate([this.auth.isAdmin ? '/admin/new' : '/member/quizzes/new']);
+  }
 
   ngOnInit(): void {
     this.loadQuizzes();
@@ -131,6 +143,10 @@ export class QuizListComponent implements OnInit {
   }
 
   onSearch(): void {
+    if (this.startDate && this.endDate && this.endDate < this.startDate) {
+      alert('問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!');
+      return;
+    }
     this.currentPage = 0;
     this.loadQuizzes();
   }

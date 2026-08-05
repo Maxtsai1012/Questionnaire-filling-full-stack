@@ -80,6 +80,7 @@ import { QuizResponseDetail, QuizResponseItem } from '../../../core/models/surve
 })
 export class AdminFeedbackComponent implements OnInit, OnChanges {
   @Input() quizId!: number;
+  @Input() isAdmin = true;
 
   responses: QuizResponseItem[] = [];
   selectedResponseDetail: QuizResponseDetail | null = null;
@@ -104,7 +105,7 @@ export class AdminFeedbackComponent implements OnInit, OnChanges {
   }
 
   loadResponses(): void {
-    this.adminQuizService.getQuizResponses(this.quizId, this.currentPage, this.pageSize).subscribe(res => {
+    this.adminQuizService.getQuizResponses(this.quizId, this.isAdmin, this.currentPage, this.pageSize).subscribe(res => {
       if (res.success && res.data) {
         this.responses = res.data.content;
         this.totalPages = res.data.totalPages;
@@ -121,7 +122,7 @@ export class AdminFeedbackComponent implements OnInit, OnChanges {
   }
 
   viewDetail(responseId: number): void {
-    this.adminQuizService.getResponseDetail(responseId).subscribe(res => {
+    this.adminQuizService.getResponseDetail(responseId, this.isAdmin).subscribe(res => {
       if (res.success) {
         this.selectedResponseDetail = res.data;
       }

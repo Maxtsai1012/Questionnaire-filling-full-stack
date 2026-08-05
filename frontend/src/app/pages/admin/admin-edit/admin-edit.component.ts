@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AdminQuizService } from '../../../core/services/admin-quiz.service';
 import { QuizService } from '../../../core/services/quiz.service';
 import { OptionItem, QuestionSave, QuestionType, QuizSaveRequest } from '../../../core/models/survey.model';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-edit',
@@ -256,7 +257,8 @@ export class AdminEditComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private adminQuizService: AdminQuizService,
-    private quizService: QuizService
+    private quizService: QuizService,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -270,7 +272,7 @@ export class AdminEditComponent implements OnInit {
 
   loadExistingQuiz(): void {
     if (!this.quizId) return;
-    this.quizService.getFrontQuizDetail(this.quizId).subscribe(res => {
+    this.adminQuizService.getManagedQuizDetail(this.quizId, this.auth.isAdmin).subscribe({next: res => {
       if (res.success && res.data) {
         const q = res.data;
         this.name = q.name;
@@ -279,7 +281,9 @@ export class AdminEditComponent implements OnInit {
         this.endDate = q.endDate;
         this.questions = q.questions || [];
       }
-    });
+    }, error: err => {
+      this.errorMessage = err.status === 403 ? '您沒有權限管理此問卷。' : (err.error?.message || '問卷載入失敗。');
+    }});
   }
 
   switchTab(tab: number): void {
@@ -312,7 +316,7 @@ export class AdminEditComponent implements OnInit {
       return false;
     }
     if (this.startDate > this.endDate) {
-      this.errorMessage = '結束時間不能早於開始時間！';
+      this.errorMessage = '問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!';
       return false;
     }
     return true;
@@ -458,12 +462,15 @@ export class AdminEditComponent implements OnInit {
       questions: this.questions
     };
 
-    this.adminQuizService.saveOrUpdateQuiz(payload).subscribe({
+    const request$ = this.auth.isAdmin
+      ? this.adminQuizService.saveOrUpdateQuiz(payload)
+      : this.adminQuizService.createMemberQuiz(payload);
+    request$.subscribe({
       next: (res) => {
         this.saving = false;
         if (res.success) {
           alert(isPublished ? '問卷已成功儲存並發佈！' : '問卷草稿已成功儲存！');
-          this.router.navigate(['/admin']);
+          this.router.navigate([this.auth.isAdmin ? '/admin' : '/member/quizzes']);
         } else {
           this.errorMessage = res.message || '儲存失敗！';
         }
@@ -476,6 +483,6 @@ export class AdminEditComponent implements OnInit {
   }
 
   onReturnToList(): void {
-    this.router.navigate(['/admin']);
+    this.router.navigate([this.auth.isAdmin ? '/admin' : '/member/quizzes']);
   }
 }

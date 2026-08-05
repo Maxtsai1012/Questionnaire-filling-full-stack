@@ -1,0 +1,292 @@
+<div class="home-page">
+  <header class="home-header" aria-label="首頁導覽">
+    <div class="ds-section-container home-header__inner">
+      <a class="home-logo" routerLink="/" aria-label="動態問卷系統首頁">
+        <span class="home-logo__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M7 3h8l4 4v14H7z" />
+            <path d="M15 3v5h4M10 12h6M10 16h6" />
+          </svg>
+        </span>
+        <span>動態問卷系統</span>
+      </a>
+      <nav class="home-nav" aria-label="首頁功能導覽">
+        <a
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          >首頁</a
+        >
+        <a routerLink="/quiz">瀏覽問卷</a>
+        <button *ngIf="!auth.user" type="button" (click)="createQuestionnaire()">建立問卷</button>
+        <a *ngIf="auth.user?.role === 'MEMBER'" routerLink="/member/quizzes/new"
+          >建立問卷</a
+        >
+        <a *ngIf="auth.isAdmin" routerLink="/admin">管理後台</a>
+        <a *ngIf="auth.user" routerLink="/member/profile">會員資料</a>
+      </nav>
+      <div class="home-header__actions">
+        <ng-container *ngIf="!auth.user; else signedInHeader">
+          <a class="ds-button ds-button--outline" routerLink="/login">登入</a>
+          <a class="ds-button ds-button--primary" routerLink="/register"
+            >註冊</a
+          >
+        </ng-container>
+        <ng-template #signedInHeader>
+          <button
+            class="ds-button ds-button--outline"
+            type="button"
+            (click)="auth.logout()"
+          >
+            登出
+          </button>
+        </ng-template>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="home-hero">
+      <div
+        class="home-hero__pattern home-hero__pattern--top"
+        aria-hidden="true"
+      ></div>
+      <div class="ds-section-container home-hero__inner">
+        <div class="home-hero__copy">
+          <span class="ds-badge ds-badge--accent">讓每一份回覆都更有價值</span>
+          <h1 class="ds-page-title">
+            簡單建立問卷，<br /><span>清楚看見每個答案</span>
+          </h1>
+          <p class="ds-body">
+            從設計題目、分享填寫到查看統計，一個平台完成所有流程。快速蒐集真實意見，讓資料成為下一步行動的依據。
+          </p>
+          <div class="home-hero__actions" *ngIf="!auth.user">
+            <a class="ds-button ds-button--primary" routerLink="/quiz"
+              >開始填寫問卷 <span aria-hidden="true">→</span></a
+            >
+            <button
+              class="ds-button ds-button--outline"
+              type="button"
+              (click)="createQuestionnaire()"
+              >登入建立問卷</button
+            >
+          </div>
+          <div class="home-hero__actions" *ngIf="auth.user?.role === 'MEMBER'">
+            <a class="ds-button ds-button--primary" [routerLink]="auth.isAdmin ? '/admin/new' : '/member/quizzes/new'"
+              >建立問卷 <span aria-hidden="true">→</span></a
+            >
+            <a class="ds-button ds-button--outline" routerLink="/quiz"
+              >瀏覽問卷</a
+            >
+          </div>
+          <div class="home-hero__actions" *ngIf="auth.isAdmin">
+            <a class="ds-button ds-button--primary" routerLink="/admin"
+              >進入管理後台 <span aria-hidden="true">→</span></a
+            >
+            <a class="ds-button ds-button--outline" routerLink="/quiz"
+              >瀏覽問卷</a
+            >
+          </div>
+          <div class="home-hero__trust" aria-label="系統特色">
+            <span><i aria-hidden="true">✓</i> 快速上手</span>
+            <span><i aria-hidden="true">✓</i> 即時統計</span>
+            <span><i aria-hidden="true">✓</i> 安全管理</span>
+          </div>
+        </div>
+
+        <div class="survey-visual" aria-label="問卷統計示意圖">
+          <div class="survey-visual__glow"></div>
+          <div class="survey-panel survey-panel--main">
+            <div class="survey-panel__top">
+              <div><small>本週回覆</small><strong>1,284</strong></div>
+              <span class="trend">+18.6%</span>
+            </div>
+            <div class="chart" aria-hidden="true">
+              <span style="--height: 42%"></span
+              ><span style="--height: 58%"></span>
+              <span style="--height: 48%"></span
+              ><span style="--height: 72%"></span>
+              <span style="--height: 63%"></span
+              ><span style="--height: 88%"></span>
+              <span style="--height: 78%"></span>
+            </div>
+            <div class="chart-labels">
+              <span>一</span><span>二</span><span>三</span><span>四</span
+              ><span>五</span><span>六</span><span>日</span>
+            </div>
+          </div>
+          <div class="survey-panel survey-panel--rate">
+            <div class="donut"><strong>86%</strong><small>完成率</small></div>
+          </div>
+          <div class="survey-panel survey-panel--responses">
+            <span class="response-icon" aria-hidden="true">✓</span>
+            <div>
+              <strong>新增 48 份回覆</strong><small>資料已即時更新</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section ds-section--surface home-features" id="features">
+      <div class="ds-section-container">
+        <div class="section-heading">
+          <span class="section-heading__eyebrow">核心功能</span>
+          <h2 class="ds-section-title">問卷工作，一次完成</h2>
+          <p class="ds-body">
+            無論是填寫意見、設計題目或掌握結果，都能用直覺的方式快速完成。
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article class="ds-card feature-card">
+            <span
+              class="feature-card__icon feature-card__icon--blue"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M4 5h16v14H4zM8 9h8M8 13h5" />
+              </svg>
+            </span>
+            <h3 class="ds-card-title">瀏覽與填寫問卷</h3>
+            <p class="ds-body">
+              搜尋目前開放的問卷，透過清楚的題目介面快速完成填寫。
+            </p>
+            <a routerLink="/quiz"
+              >查看公開問卷 <span aria-hidden="true">→</span></a
+            >
+          </article>
+          <article class="ds-card feature-card">
+            <span
+              class="feature-card__icon feature-card__icon--green"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z" />
+              </svg>
+            </span>
+            <h3 class="ds-card-title">建立自己的問卷</h3>
+            <p class="ds-body">
+              彈性設定題型與選項，依照需求安排問卷內容與開放期間。
+            </p>
+            <button
+              *ngIf="!auth.user"
+              type="button"
+              (click)="createQuestionnaire()"
+              >登入開始建立 <span aria-hidden="true">→</span></button
+            >
+            <a *ngIf="auth.user?.role === 'MEMBER'" routerLink="/member/quizzes/new"
+              >開始建立 <span aria-hidden="true">→</span></a
+            >
+            <a *ngIf="auth.isAdmin" routerLink="/admin"
+              >前往管理後台 <span aria-hidden="true">→</span></a
+            >
+          </article>
+          <article class="ds-card feature-card">
+            <span
+              class="feature-card__icon feature-card__icon--amber"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+              </svg>
+            </span>
+            <h3 class="ds-card-title">查看回覆與統計</h3>
+            <p class="ds-body">
+              將填答結果整理成易讀圖表，快速掌握趨勢與重要觀察。
+            </p>
+            <a routerLink="/quiz"
+              >查看問卷結果 <span aria-hidden="true">→</span></a
+            >
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section home-process" id="process">
+      <div class="ds-section-container">
+        <div class="section-heading">
+          <span class="section-heading__eyebrow">三個步驟</span>
+          <h2 class="ds-section-title">從想法到洞察，流程清楚簡單</h2>
+        </div>
+        <ol class="process-list">
+          <li>
+            <span class="process-list__number">01</span>
+            <div>
+              <h3>尋找或建立問卷</h3>
+              <p>瀏覽感興趣的公開問卷，或登入後設計自己的題目。</p>
+            </div>
+          </li>
+          <li>
+            <span class="process-list__number">02</span>
+            <div>
+              <h3>填寫與分享</h3>
+              <p>完成問卷填寫，也能將建好的問卷分享給目標對象。</p>
+            </div>
+          </li>
+          <li>
+            <span class="process-list__number">03</span>
+            <div>
+              <h3>查看回覆與統計</h3>
+              <p>透過統計結果理解回覆，快速整理有用的資訊。</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="home-cta">
+      <div class="ds-section-container home-cta__inner">
+        <div>
+          <span>準備好開始了嗎？</span>
+          <h2>現在就探索你的下一份問卷</h2>
+          <p>瀏覽公開問卷，或建立帳號開始蒐集屬於你的回覆。</p>
+        </div>
+        <div class="home-cta__actions" *ngIf="!auth.user">
+          <a class="ds-button home-cta__primary" routerLink="/quiz"
+            >開始填寫問卷</a
+          >
+          <button
+            class="ds-button home-cta__outline"
+            type="button"
+            (click)="createQuestionnaire()"
+            >登入建立問卷</button
+          >
+        </div>
+        <div class="home-cta__actions" *ngIf="auth.user?.role === 'MEMBER'">
+          <a class="ds-button home-cta__primary" [routerLink]="auth.isAdmin ? '/admin/new' : '/member/quizzes/new'"
+            >建立問卷</a
+          >
+          <a class="ds-button home-cta__outline" routerLink="/quiz">瀏覽問卷</a>
+        </div>
+        <div class="home-cta__actions" *ngIf="auth.isAdmin">
+          <a class="ds-button home-cta__primary" routerLink="/admin"
+            >進入管理後台</a
+          >
+          <a class="ds-button home-cta__outline" routerLink="/quiz">瀏覽問卷</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="home-footer">
+    <div class="ds-section-container home-footer__inner">
+      <div class="home-logo home-logo--footer">
+        <span class="home-logo__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M7 3h8l4 4v14H7z" />
+            <path d="M15 3v5h4M10 12h6M10 16h6" />
+          </svg>
+        </span>
+        <span>動態問卷系統</span>
+      </div>
+      <p>讓每一份意見，都成為更好的決定。</p>
+      <nav aria-label="頁尾導覽">
+        <a routerLink="/quiz">瀏覽問卷</a><a routerLink="/login">登入</a
+        ><a routerLink="/register">註冊</a>
+      </nav>
+    </div>
+    <div class="ds-section-container home-footer__bottom">
+      © 2026 動態問卷系統
+    </div>
+  </footer>
+</div>

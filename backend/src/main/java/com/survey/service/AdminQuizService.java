@@ -7,6 +7,8 @@ import com.survey.entity.Quiz;
 import com.survey.entity.QuizQuestion;
 import com.survey.entity.QuizResponse;
 import com.survey.entity.ResponseAnswer;
+import com.survey.entity.AppUser;
+import com.survey.common.ResourceNotFoundException;
 import com.survey.enums.QuizStatus;
 import com.survey.repository.QuizQuestionRepository;
 import com.survey.repository.QuizRepository;
@@ -23,6 +25,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +42,18 @@ public class AdminQuizService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Quiz> quizzes = quizRepository.searchAdminQuizzes(name, startDate, endDate, pageable);
 
-        return quizzes.map(quiz -> {
+        return quizzes.map(this::toManagementListDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<QuizListDto> getOwnedQuizzes(Integer ownerId, String name, LocalDate startDate,
+                                              LocalDate endDate, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return quizRepository.searchOwnedQuizzes(ownerId, name, startDate, endDate, pageable)
+                .map(this::toManagementListDto);
+    }
+
+    private QuizListDto toManagementListDto(Quiz quiz) {
             QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
             boolean canEdit = (status == QuizStatus.UNPUBLISHED || status == QuizStatus.NOT_STARTED);
             boolean canDelete = (status == QuizStatus.UNPUBLISHED || status == QuizStatus.NOT_STARTED);
@@ -56,12 +70,26 @@ public class AdminQuizService {
                     .canEdit(canEdit)
                     .canDelete(canDelete)
                     .canViewStats(canViewStats)
+                    .ownerId(quiz.getOwner() == null ? null : quiz.getOwner().getId())
+                    .ownerName(quiz.getOwner() == null ? null : quiz.getOwner().getName())
                     .build();
-        });
+    }
+
+    @Transactional(readOnly = true)
+    public QuizDetailDto getManagedQuizDetail(Integer quizId, Integer actorId, boolean admin) {
+        Quiz quiz = resolveManageableQuiz(quizId, actorId, admin);
+        List<QuestionSaveDto> questions = questionRepository.findByQuizIdOrderBySortOrderAscIdAsc(quizId).stream()
+                .map(q -> new QuestionSaveDto(q.getId(), q.getTitle(), q.getType(), q.getIsRequired(),
+                        parseOptions(q.getOptions())))
+                .collect(Collectors.toList());
+        QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+        return QuizDetailDto.builder().id(quiz.getId()).name(quiz.getName()).description(quiz.getDescription())
+                .startDate(quiz.getStartDate()).endDate(quiz.getEndDate()).isPublished(quiz.getIsPublished())
+                .status(status).statusLabel(status.getLabel()).questions(questions).build();
     }
 
     @Transactional
-    public Integer saveOrUpdateQuiz(QuizSaveRequestDto req) {
+    public Integer saveOrUpdateQuiz(QuizSaveRequestDto req, AppUser actor, boolean admin) {
         LocalDate today = LocalDate.now();
 
         // Validation for new or modified dates
@@ -70,11 +98,13 @@ public class AdminQuizService {
                 throw new IllegalArgumentException("結束時間不能早於開始時間！");
             }
         }
+        if (req.getStartDate() == null || req.getEndDate() == null) {
+            throw new IllegalArgumentException("開始時間與結束時間皆為必填！");
+        }
 
         Quiz quiz;
         if (req.getId() != null) {
-            quiz = quizRepository.findById(req.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("問卷不存在 (ID: " + req.getId() + ")"));
+            quiz = resolveManageableQuiz(req.getId(), actor.getId(), admin);
 
             QuizStatus currentStatus = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
             if (currentStatus == QuizStatus.IN_PROGRESS || currentStatus == QuizStatus.ENDED) {
@@ -82,6 +112,7 @@ public class AdminQuizService {
             }
         } else {
             quiz = new Quiz();
+            quiz.setOwner(actor);
             if (req.getStartDate().isBefore(today)) {
                 throw new IllegalArgumentException("開始時間不能是今日之前的日期！");
             }
@@ -128,12 +159,17 @@ public class AdminQuizService {
 
     @Transactional
     public void deleteQuizzes(List<Integer> ids) {
+        deleteQuizzes(ids, null, true);
+    }
+
+    @Transactional
+    public void deleteQuizzes(List<Integer> ids, Integer actorId, boolean admin) {
         if (ids == null || ids.isEmpty()) {
             return;
         }
 
         for (Integer id : ids) {
-            Quiz quiz = quizRepository.findById(id).orElse(null);
+            Quiz quiz = resolveManageableQuiz(id, actorId, admin);
             if (quiz != null) {
                 QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
                 if (status == QuizStatus.IN_PROGRESS || status == QuizStatus.ENDED) {
@@ -144,8 +180,28 @@ public class AdminQuizService {
         }
     }
 
+    private Quiz resolveManageableQuiz(Integer quizId, Integer actorId, boolean admin) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("問卷不存在"));
+        if (!admin && (quiz.getOwner() == null || !quiz.getOwner().getId().equals(actorId))) {
+            throw new SecurityException("無權管理此問卷");
+        }
+        return quiz;
+    }
+
+    private List<OptionDto> parseOptions(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<OptionDto>>() {});
+        } catch (Exception ex) {
+            return Collections.emptyList();
+        }
+    }
+
     @Transactional(readOnly = true)
-    public Page<QuizResponseListDto> getQuizResponses(Integer quizId, int page, int size) {
+    public Page<QuizResponseListDto> getQuizResponses(Integer quizId, int page, int size,
+                                                       Integer actorId, boolean admin) {
+        resolveManageableQuiz(quizId, actorId, admin);
         Pageable pageable = PageRequest.of(page, size);
         Page<QuizResponse> responses = responseRepository.findByQuizIdOrderByIdDesc(quizId, pageable);
 
@@ -157,12 +213,11 @@ public class AdminQuizService {
     }
 
     @Transactional(readOnly = true)
-    public QuizResponseDetailDto getResponseDetail(Integer responseId) {
+    public QuizResponseDetailDto getResponseDetail(Integer responseId, Integer actorId, boolean admin) {
         QuizResponse response = responseRepository.findById(responseId)
-                .orElseThrow(() -> new IllegalArgumentException("找不到填答紀錄 (ID: " + responseId + ")"));
+                .orElseThrow(() -> new ResourceNotFoundException("找不到填答紀錄"));
 
-        Quiz quiz = quizRepository.findById(response.getQuizId())
-                .orElseThrow(() -> new IllegalArgumentException("對應問卷不存在"));
+        Quiz quiz = resolveManageableQuiz(response.getQuizId(), actorId, admin);
 
         List<QuizQuestion> questions = questionRepository.findByQuizIdOrderBySortOrderAscIdAsc(quiz.getId());
         List<ResponseAnswer> answers = answerRepository.findByResponseId(responseId);

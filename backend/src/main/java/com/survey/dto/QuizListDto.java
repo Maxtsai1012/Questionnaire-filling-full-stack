@@ -22,4 +22,6 @@ public class QuizListDto {
     private Boolean canDelete;
     private Boolean canViewStats;
     private Boolean canFill;
+    private Integer ownerId;
+    private String ownerName;
 }
