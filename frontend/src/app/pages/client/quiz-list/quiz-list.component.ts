@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { QuizService } from '../../../core/services/quiz.service';
 import { QuizListItem } from '../../../core/models/survey.model';
-import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { createPaginationState, updatePagination, PaginationState } from '../../../core/utils/pagination.helper';
 
 @Component({
   selector: 'app-quiz-list',
@@ -89,14 +89,7 @@ import { AuthService } from '../../../core/services/auth.service';
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div class="pagination" *ngIf="totalPages > 1">
-        <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0">&laquo; 前頁</button>
-        <button *ngFor="let page of pagesArray" (click)="changePage(page)" [class.active]="currentPage === page">
-          {{ page + 1 }}
-        </button>
-        <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">後頁 &raquo;</button>
-      </div>
+      <app-pagination [state]="pagination" (pageChange)="changePage($event)"></app-pagination>
     </div>
   `
 })
@@ -106,20 +99,12 @@ export class QuizListComponent implements OnInit {
   startDate = '';
   endDate = '';
 
-  currentPage = 0;
-  pageSize = 10;
-  totalPages = 0;
-  pagesArray: number[] = [];
+  pagination: PaginationState = createPaginationState(10);
 
-  constructor(private quizService: QuizService, private auth: AuthService, private router: Router) {}
+  constructor(private quizService: QuizService, private auth: AuthService) {}
 
   createQuiz(): void {
-    if (!this.auth.user) {
-      alert('請登入建立表單!!');
-      this.router.navigate(['/login'], { queryParams: { returnUrl: '/member/quizzes/new' } });
-      return;
-    }
-    this.router.navigate([this.auth.isAdmin ? '/admin/new' : '/member/quizzes/new']);
+    this.auth.navigateToCreateOrLogin();
   }
 
   ngOnInit(): void {
@@ -131,13 +116,12 @@ export class QuizListComponent implements OnInit {
       this.searchName.trim() || undefined,
       this.startDate || undefined,
       this.endDate || undefined,
-      this.currentPage,
-      this.pageSize
+      this.pagination.currentPage,
+      this.pagination.pageSize
     ).subscribe(res => {
       if (res.success && res.data) {
         this.quizzes = res.data.content;
-        this.totalPages = res.data.totalPages;
-        this.pagesArray = Array.from({ length: this.totalPages }, (_, i) => i);
+        updatePagination(this.pagination, res.data.totalPages);
       }
     });
   }
@@ -147,7 +131,7 @@ export class QuizListComponent implements OnInit {
       alert('問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!');
       return;
     }
-    this.currentPage = 0;
+    this.pagination.currentPage = 0;
     this.loadQuizzes();
   }
 
@@ -155,14 +139,12 @@ export class QuizListComponent implements OnInit {
     this.searchName = '';
     this.startDate = '';
     this.endDate = '';
-    this.currentPage = 0;
+    this.pagination.currentPage = 0;
     this.loadQuizzes();
   }
 
   changePage(page: number): void {
-    if (page >= 0 && page < this.totalPages) {
-      this.currentPage = page;
-      this.loadQuizzes();
-    }
+    this.pagination.currentPage = page;
+    this.loadQuizzes();
   }
 }

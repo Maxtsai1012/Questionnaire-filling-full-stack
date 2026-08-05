@@ -2,6 +2,7 @@ import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AuthService } from "../../core/services/auth.service";
+import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/validators";
 
 @Component({
   selector: "app-register",
@@ -226,39 +227,49 @@ export class RegisterComponent implements OnInit {
 
   clearPasswordErrors(): void {
     this.clearFieldError("password");
-    if (this.password === this.confirmPassword)
+    if (this.password === this.confirmPassword) {
       delete this.errors["confirmPassword"];
+    }
   }
 
   submit(): void {
     if (this.submitting) return;
     this.errors = {};
     this.serverError = "";
-    const name = this.name.trim().replace(/\s+/g, " ");
-    const phone = this.phone.replace(/[\s-]/g, "");
-    const email = this.email.trim().toLowerCase();
-    const namePattern =
-      /^[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+(?: [\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+)*$/;
+    const cleanedName = normalizeName(this.name);
+    const cleanedPhone = normalizePhone(this.phone);
+    const cleanedEmail = this.email.trim().toLowerCase();
 
-    if (!name) this.errors["name"] = "請輸入姓名。";
-    else if (!namePattern.test(name))
+    if (!cleanedName) {
+      this.errors["name"] = "請輸入姓名。";
+    } else if (!PATTERNS.NAME.test(cleanedName)) {
       this.errors["name"] = "姓名只能包含中文、英文與字詞間空格。";
-    if (!phone) this.errors["phone"] = "請輸入手機號碼。";
-    else if (!/^09\d{8}$/.test(phone))
+    }
+
+    if (!cleanedPhone) {
+      this.errors["phone"] = "請輸入手機號碼。";
+    } else if (!PATTERNS.PHONE.test(cleanedPhone)) {
       this.errors["phone"] = "請輸入 09 開頭的 10 位數手機號碼。";
-    if (!email) this.errors["email"] = "請輸入電子信箱。";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    }
+
+    if (!cleanedEmail) {
+      this.errors["email"] = "請輸入電子信箱。";
+    } else if (!PATTERNS.EMAIL.test(cleanedEmail)) {
       this.errors["email"] = "請輸入有效的電子信箱格式。";
+    }
+
     if (!this.password) this.errors["password"] = "請設定密碼。";
-    if (!this.confirmPassword)
+    if (!this.confirmPassword) {
       this.errors["confirmPassword"] = "請再次輸入密碼。";
-    else if (this.password !== this.confirmPassword)
+    } else if (this.password !== this.confirmPassword) {
       this.errors["confirmPassword"] = "兩次輸入的密碼不一致。";
+    }
+
     if (Object.keys(this.errors).length) return;
 
     this.submitting = true;
     this.auth
-      .register(name, phone, email, this.password)
+      .register(cleanedName, cleanedPhone, cleanedEmail, this.password)
       .pipe(finalize(() => (this.submitting = false)))
       .subscribe({
         next: () => this.router.navigate(["/quiz"]),

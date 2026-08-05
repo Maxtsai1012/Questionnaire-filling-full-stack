@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizService } from '../../../core/services/quiz.service';
-import { AnswerSubmit, QuestionSave, QuizDetail, ResponseSubmit } from '../../../core/models/survey.model';
+import { SessionStorageService } from '../../../core/services/session-storage.service';
+import { AnswerSubmit, Question, QuizDetail, ResponseSubmit } from '../../../core/models/survey.model';
 import { AuthService } from '../../../core/services/auth.service';
+import { PATTERNS, normalizePhone } from '../../../core/utils/validators';
 
 @Component({
   selector: 'app-quiz-form',
@@ -63,9 +65,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <!-- Single Choice (Q) -->
           <div *ngIf="q.type === 'Q'" style="display: flex; flex-direction: column; gap: 10px;">
             <label *ngFor="let opt of q.options" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
-              <input type="radio" [name]="'question_' + q.questId" [value]="opt.optionName"
-                     [checked]="singleAnswers[q.questId!] === opt.optionName"
-                     (change)="singleAnswers[q.questId!] = opt.optionName; clearFieldError('question_' + q.questId)" />
+              <input type="radio" [name]="'question_' + q.questId"
+                     [checked]="singleAnswers[q.questId] === opt.code"
+                     (change)="singleAnswers[q.questId] = opt.code; clearFieldError('question_' + q.questId)" />
               {{ opt.optionName }}
             </label>
           </div>
@@ -74,15 +76,15 @@ import { AuthService } from '../../../core/services/auth.service';
           <div *ngIf="q.type === 'M'" style="display: flex; flex-direction: column; gap: 10px;">
             <label *ngFor="let opt of q.options" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
               <input type="checkbox"
-                     [checked]="isMultiChecked(q.questId!, opt.optionName)"
-                     (change)="toggleMultiCheck(q.questId!, opt.optionName)" />
+                     [checked]="isMultiChecked(q.questId, opt.code)"
+                     (change)="toggleMultiCheck(q.questId, opt.code)" />
               {{ opt.optionName }}
             </label>
           </div>
 
           <!-- Text (T) -->
           <div *ngIf="q.type === 'T'">
-            <textarea class="form-control" [(ngModel)]="textAnswers[q.questId!]" (ngModelChange)="clearFieldError('question_' + q.questId)" placeholder="請輸入說明與理由..."></textarea>
+            <textarea class="form-control" [(ngModel)]="textAnswers[q.questId]" (ngModelChange)="clearFieldError('question_' + q.questId)" placeholder="請輸入說明與理由..."></textarea>
           </div>
           <div class="field-error" *ngIf="fieldErrors['question_' + q.questId]">{{ fieldErrors['question_' + q.questId] }}</div>
         </div>
@@ -109,8 +111,9 @@ export class QuizFormComponent implements OnInit {
   email = '';
   age: number | null = null;
 
-  singleAnswers: { [questId: number]: string } = {};
-  multiAnswers: { [questId: number]: string[] } = {};
+  // 存的是選項 code 而非顯示文字：選項改名不影響已填的草稿，選項文字含分號也不再有解析問題。
+  singleAnswers: { [questId: number]: number } = {};
+  multiAnswers: { [questId: number]: number[] } = {};
   textAnswers: { [questId: number]: string } = {};
 
   errorMessage = '';
@@ -120,6 +123,7 @@ export class QuizFormComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private quizService: QuizService,
+    private sessionStorageService: SessionStorageService,
     public auth: AuthService
   ) {}
 
@@ -143,8 +147,8 @@ export class QuizFormComponent implements OnInit {
   }
 
   restoreDraft(): void {
-    this.fieldErrors = this.quizService.takeServerErrorsFromSession(this.quizId);
-    const draft = this.quizService.getDraftFromSession(this.quizId);
+    this.fieldErrors = this.sessionStorageService.takeServerErrors(this.quizId);
+    const draft = this.sessionStorageService.getQuizDraft(this.quizId);
     if (draft) {
       if (!this.auth.user) {
         this.respondentName = draft.respondentName || '';
@@ -157,12 +161,13 @@ export class QuizFormComponent implements OnInit {
         for (const ans of draft.answers) {
           const q = this.quiz.questions.find(item => item.questId === ans.questionId);
           if (q) {
-            if (q.type === 'Q') {
-              this.singleAnswers[q.questId!] = ans.answer;
-            } else if (q.type === 'M') {
-              this.multiAnswers[q.questId!] = ans.answer ? ans.answer.split(';') : [];
-            } else if (q.type === 'T') {
-              this.textAnswers[q.questId!] = ans.answer;
+            if (q.type === 'T') {
+              this.textAnswers[q.questId] = ans.answer ?? '';
+            } else if (q.type === 'Q') {
+              const [code] = ans.optionCodes ?? [];
+              if (code !== undefined) this.singleAnswers[q.questId] = code;
+            } else {
+              this.multiAnswers[q.questId] = [...(ans.optionCodes ?? [])];
             }
           }
         }
@@ -170,23 +175,31 @@ export class QuizFormComponent implements OnInit {
     }
   }
 
-  isMultiChecked(questId: number, optionName: string): boolean {
-    const list = this.multiAnswers[questId] || [];
-    return list.includes(optionName);
+  isMultiChecked(questId: number, code: number): boolean {
+    return (this.multiAnswers[questId] || []).includes(code);
   }
 
-  toggleMultiCheck(questId: number, optionName: string): void {
-    if (!this.multiAnswers[questId]) {
-      this.multiAnswers[questId] = [];
-    }
-    const list = this.multiAnswers[questId];
-    const idx = list.indexOf(optionName);
+  toggleMultiCheck(questId: number, code: number): void {
+    const list = this.multiAnswers[questId] ?? (this.multiAnswers[questId] = []);
+    const idx = list.indexOf(code);
     if (idx >= 0) {
       list.splice(idx, 1);
     } else {
-      list.push(optionName);
+      list.push(code);
     }
     this.clearFieldError(`question_${questId}`);
+  }
+
+  /** 該題已勾選的選項 code；文字題回空陣列。 */
+  private selectedCodes(q: Question): number[] {
+    if (q.type === 'M') {
+      return this.multiAnswers[q.questId] ?? [];
+    }
+    if (q.type === 'Q') {
+      const code = this.singleAnswers[q.questId];
+      return code === undefined ? [] : [code];
+    }
+    return [];
   }
 
   clearFieldError(field: string): void {
@@ -198,28 +211,25 @@ export class QuizFormComponent implements OnInit {
   onSubmit(): void {
     this.errorMessage = '';
     this.fieldErrors = {};
-    const normalizedPhone = this.phone.replace(/[\s-]/g, '');
-    const nameRegex = /^[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+(?: [\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+)*$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!this.respondentName.trim() || !nameRegex.test(this.respondentName.trim().replace(/\s+/g, ' '))) this.fieldErrors['respondentName'] = '只允許填寫中文和英文!!';
-    if (!/^09\d{8}$/.test(normalizedPhone)) this.fieldErrors['phone'] = '手機格式不符!!';
-    if (!emailRegex.test(this.email.trim())) this.fieldErrors['email'] = '信箱格式不符!!';
-    if (this.age !== null && this.age < 0) this.fieldErrors['age'] = '年齡不得為負數!!';
+    const normalizedPhone = normalizePhone(this.phone);
 
-    // Check required questions
-    if (this.quiz) {
-      for (const q of this.quiz.questions) {
-        if (q.need) {
-          if (q.type === 'Q' && !this.singleAnswers[q.questId!]) {
-            this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
-          }
-          if (q.type === 'M' && (!this.multiAnswers[q.questId!] || this.multiAnswers[q.questId!].length === 0)) {
-            this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
-          }
-          if (q.type === 'T' && (!this.textAnswers[q.questId!] || !this.textAnswers[q.questId!].trim())) {
-            this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
-          }
-        }
+    if (!this.respondentName.trim() || !PATTERNS.NAME.test(this.respondentName.trim().replace(/\s+/g, ' '))) {
+      this.fieldErrors['respondentName'] = '只允許填寫中文和英文!!';
+    }
+    if (!PATTERNS.PHONE.test(normalizedPhone)) {
+      this.fieldErrors['phone'] = '手機格式不符!!';
+    }
+    if (!PATTERNS.EMAIL.test(this.email.trim())) {
+      this.fieldErrors['email'] = '信箱格式不符!!';
+    }
+    if (this.age !== null && this.age < 0) {
+      this.fieldErrors['age'] = '年齡不得為負數!!';
+    }
+
+    // 必填檢查。注意選項 code 從 0 開始，所以要比對 undefined 而不能用真假值判斷。
+    for (const q of this.quiz?.questions ?? []) {
+      if (q.need && this.selectedCodes(q).length === 0 && !this.textAnswers[q.questId]?.trim()) {
+        this.fieldErrors[`question_${q.questId}`] = '此題為必填項目!!';
       }
     }
 
@@ -228,35 +238,23 @@ export class QuizFormComponent implements OnInit {
       return;
     }
 
-        // Collect answers
-        const answers: AnswerSubmit[] = [];
-        if (this.quiz) {
-          for (const q of this.quiz.questions) {
-            let ansVal = '';
-            if (q.type === 'Q') {
-              ansVal = this.singleAnswers[q.questId!] || '';
-            } else if (q.type === 'M') {
-              ansVal = (this.multiAnswers[q.questId!] || []).join(';');
-            } else if (q.type === 'T') {
-              ansVal = this.textAnswers[q.questId!] || '';
-            }
-            answers.push({ questionId: q.questId!, answer: ansVal });
-          }
-        }
+    const answers: AnswerSubmit[] = (this.quiz?.questions ?? []).map(q => q.type === 'T'
+      ? { questionId: q.questId, answer: this.textAnswers[q.questId] ?? '' }
+      : { questionId: q.questId, optionCodes: this.selectedCodes(q) });
 
-        const draftData: ResponseSubmit = {
-          quizId: this.quizId,
-          respondentName: this.respondentName.trim(),
-          phone: normalizedPhone,
-          email: this.email.trim(),
-          age: this.age || undefined,
-          answers: answers
-        };
+    const draftData: ResponseSubmit = {
+      quizId: this.quizId,
+      respondentName: this.respondentName.trim(),
+      phone: normalizedPhone,
+      email: this.email.trim(),
+      age: this.age || undefined,
+      answers: answers
+    };
 
-        // Save to Session Storage
-        this.quizService.saveDraftToSession(this.quizId, draftData);
-        // Navigate to Confirm Page
-        this.router.navigate(['/quiz', this.quizId, 'confirm']);
+    // Save to Session Storage
+    this.sessionStorageService.saveQuizDraft(this.quizId, draftData);
+    // Navigate to Confirm Page
+    this.router.navigate(['/quiz', this.quizId, 'confirm']);
   }
 
   onCancel(): void {

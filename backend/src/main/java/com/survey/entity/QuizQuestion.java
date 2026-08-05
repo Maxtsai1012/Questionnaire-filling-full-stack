@@ -28,8 +28,7 @@ public class QuizQuestion {
     @Column(name = "is_required", nullable = false)
     private Boolean isRequired = false;
 
-    @Column(columnDefinition = "JSON")
-    private String options; // JSON string representing options array
+    // 選項見 quiz_option 表（原本是這裡的 JSON 欄位，已於 V3/V4 正規化）
 
     @Column(name = "sort_order")
     private Integer sortOrder = 0;

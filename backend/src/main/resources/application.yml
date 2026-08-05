@@ -12,9 +12,17 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:rootpassword}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    # 既有資料庫（由 init.sql 建立）沒有 flyway 歷史表，標記為已套用 V1 後接著跑 V2 以後；
+    # 全新資料庫則從 V1 開始建。兩邊自此共用同一條 migration 線。
+    baseline-on-migrate: true
+    baseline-version: 1
   jpa:
     hibernate:
-      ddl-auto: update
+      # schema 由 Flyway 管理；validate 讓 entity 與實際 schema 不一致時在啟動就爆，
+      # 而不是像 update 那樣默默改動資料庫。
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -29,5 +37,5 @@ app:
     password:
       bcrypt-strength: ${BCRYPT_STRENGTH:12}
     jwt:
-      secret: ${JWT_SECRET}
+      secret: ${JWT_SECRET:default_dev_secret_key_at_least_32_bytes_long_for_survey_app_123456789}
       expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}

@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -8,10 +7,9 @@ import { Router } from '@angular/router';
   styleUrls: ['./home.component.css']
 })
 export class HomeComponent {
-  constructor(public auth: AuthService, private router: Router) {}
+  constructor(public auth: AuthService) {}
 
   createQuestionnaire(): void {
-    alert('請登入建立表單!!');
-    this.router.navigate(['/login'], { queryParams: { returnUrl: '/member/quizzes/new' } });
+    this.auth.navigateToCreateOrLogin();
   }
 }

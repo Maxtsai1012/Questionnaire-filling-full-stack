@@ -8,6 +8,7 @@ import { AppComponent } from './app.component';
 
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { ChartViewComponent } from './components/chart-view/chart-view.component';
+import { PaginationComponent } from './components/pagination/pagination.component';
 
 import { QuizListComponent } from './pages/client/quiz-list/quiz-list.component';
 import { QuizFormComponent } from './pages/client/quiz-form/quiz-form.component';
@@ -29,6 +30,7 @@ import { HomeComponent } from './pages/home/home.component';
     AppComponent,
     NavbarComponent,
     ChartViewComponent,
+    PaginationComponent,
     QuizListComponent,
     QuizFormComponent,
     QuizConfirmComponent,

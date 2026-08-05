@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizService } from '../../../core/services/quiz.service';
-import { QuizDetail, ResponseSubmit } from '../../../core/models/survey.model';
+import { SessionStorageService } from '../../../core/services/session-storage.service';
+import { Question, QuizDetail, ResponseSubmit } from '../../../core/models/survey.model';
 
 @Component({
   selector: 'app-quiz-confirm',
@@ -36,7 +37,7 @@ import { QuizDetail, ResponseSubmit } from '../../../core/models/survey.model';
             {{ i + 1 }}. {{ q.questName }}
           </div>
           <div style="color: #3b82f6; font-weight: 600; padding-left: 12px; border-left: 3px solid #3b82f6;">
-            {{ getAnswerDisplay(q.questId!) }}
+            {{ getAnswerDisplay(q) }}
           </div>
         </div>
 
@@ -66,12 +67,13 @@ export class QuizConfirmComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private quizService: QuizService
+    private quizService: QuizService,
+    private sessionStorageService: SessionStorageService
   ) {}
 
   ngOnInit(): void {
     this.quizId = +this.route.snapshot.paramMap.get('id')!;
-    this.draftData = this.quizService.getDraftFromSession(this.quizId);
+    this.draftData = this.sessionStorageService.getQuizDraft(this.quizId);
 
     if (!this.draftData) {
       this.router.navigate(['/quiz', this.quizId, 'form']);
@@ -85,11 +87,18 @@ export class QuizConfirmComponent implements OnInit {
     });
   }
 
-  getAnswerDisplay(questionId: number): string {
-    if (!this.draftData || !this.draftData.answers) return '未填寫';
-    const item = this.draftData.answers.find(a => a.questionId === questionId);
-    if (!item || !item.answer) return '未填寫';
-    return item.answer.replace(/;/g, '、');
+  /** 草稿存的是選項 code，顯示時才對照題目的選項還原成文字。 */
+  getAnswerDisplay(question: Question): string {
+    const item = this.draftData?.answers?.find(a => a.questionId === question.questId);
+    if (!item) return '未填寫';
+
+    if (question.type === 'T') {
+      return item.answer?.trim() || '未填寫';
+    }
+    const labels = (item.optionCodes ?? [])
+      .map(code => question.options?.find(o => o.code === code)?.optionName)
+      .filter((label): label is string => !!label);
+    return labels.length > 0 ? labels.join('、') : '未填寫';
   }
 
   onModify(): void {
@@ -106,7 +115,7 @@ export class QuizConfirmComponent implements OnInit {
         this.submitting = false;
         if (res.success) {
           alert('問卷送出成功！謝謝您的填寫。');
-          this.quizService.clearDraftSession(this.quizId);
+          this.sessionStorageService.clearQuizDraft(this.quizId);
           this.router.navigate(['/quiz']);
         } else {
           this.errorMessage = res.message || '提交失敗，請再試一次！';
@@ -116,7 +125,7 @@ export class QuizConfirmComponent implements OnInit {
         this.submitting = false;
         this.errorMessage = err.error?.message || '提交失敗，系統發生錯誤！';
         if (err.error?.fieldErrors) {
-          this.quizService.saveServerErrorsToSession(this.quizId, err.error.fieldErrors);
+          this.sessionStorageService.saveServerErrors(this.quizId, err.error.fieldErrors);
           this.router.navigate(['/quiz', this.quizId, 'form']);
         }
       }

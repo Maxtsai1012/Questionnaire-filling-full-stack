@@ -11,16 +11,20 @@ import java.util.List;
 @Repository
 public interface ResponseAnswerRepository extends JpaRepository<ResponseAnswer, Integer> {
 
-    List<ResponseAnswer> findByQuestionId(Integer questionId);
     List<ResponseAnswer> findByResponseId(Integer responseId);
 
-    // 效能優化 1：一次查詢整個問卷的所有問題回答，避免 N+1 查詢問題
-    @Query("SELECT ra FROM ResponseAnswer ra WHERE ra.questionId IN :questionIds")
-    List<ResponseAnswer> findByQuestionIdIn(@Param("questionIds") List<Integer> questionIds);
+    /** 每題的作答人數（有建列就代表有作答，空白答案不建列）。 */
+    @Query("SELECT ra.questionId, COUNT(ra) FROM ResponseAnswer ra " +
+           "WHERE ra.questionId IN :questionIds GROUP BY ra.questionId")
+    List<Object[]> countAnswersByQuestion(@Param("questionIds") List<Integer> questionIds);
 
-    // 效能優化 2：DB 層級聚合作答次數統計 (全量聚合成行記錄，直接由 MySQL 計算)
-    @Query("SELECT ra.questionId AS questionId, ra.answer AS answer, COUNT(ra.id) AS count " +
-           "FROM ResponseAnswer ra WHERE ra.questionId IN :questionIds " +
-           "GROUP BY ra.questionId, ra.answer")
-    List<Object[]> countAnswersByQuestionIds(@Param("questionIds") List<Integer> questionIds);
+    /** 選擇題票數：直接在 DB 聚合，不再把整批答案拉回 JVM 分組。 */
+    @Query("SELECT o, COUNT(ra) FROM ResponseAnswer ra JOIN ra.selectedOptionIds o " +
+           "WHERE ra.questionId IN :questionIds GROUP BY o")
+    List<Object[]> countVotesByOption(@Param("questionIds") List<Integer> questionIds);
+
+    /** 文字題答案分佈。 */
+    @Query("SELECT ra.questionId, ra.answer, COUNT(ra) FROM ResponseAnswer ra " +
+           "WHERE ra.questionId IN :questionIds GROUP BY ra.questionId, ra.answer")
+    List<Object[]> countTextAnswers(@Param("questionIds") List<Integer> questionIds);
 }

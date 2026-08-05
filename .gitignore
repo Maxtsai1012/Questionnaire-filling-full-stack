@@ -1,22 +1,57 @@
-# Node / Frontend dependencies & build output
+# Frontend dependencies & build artifacts
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Java / Maven build output
 backend/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+# The Maven wrapper jar must stay in the repo, otherwise ./mvnw breaks on a fresh clone.
+!.mvn/wrapper/maven-wrapper.jar
 
-# Local secrets and environment overrides
+# Environment & Local secrets
 application-local.yml
 application-local.properties
 application-secret.yml
 application-secret.properties
 .env
+.env.local
 .env.*
+# .env.* above would otherwise swallow the onboarding template.
+!.env.example
 
-# IDE & OS files
+# IDE & Editor configurations
 .idea/
 .vscode/
 *.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+
+# System & OS temporary files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Docker & Database local data
+db_data/
+*.log
+
+# TypeScript incremental build state
+*.tsbuildinfo
