@@ -1,15 +1,15 @@
-import { Component, OnInit } from '@angular/core';
-import { QuizService } from '../../../core/services/quiz.service';
-import { QuizListItem } from '../../../core/models/survey.model';
-import { Router } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { Component, OnInit } from "@angular/core";
+import { QuizService } from "../../../core/services/quiz.service";
+import { QuizListItem } from "../../../core/models/survey.model";
+import { Router } from "@angular/router";
+import { AuthService } from "../../../core/services/auth.service";
 
 @Component({
-  selector: 'app-quiz-list',
+  selector: "app-quiz-list",
   template: `
     <div class="container">
       <div class="page-header">
-        <h1 class="page-title">問卷列表 (前台)</h1>
+        <h1 class="page-title">問卷列表</h1>
         <button class="btn btn-primary" (click)="createQuiz()">新增問卷</button>
       </div>
 
@@ -18,17 +18,33 @@ import { AuthService } from '../../../core/services/auth.service';
         <div class="search-grid">
           <div class="form-group">
             <label>問卷名稱：</label>
-            <input type="text" class="form-control" [(ngModel)]="searchName" placeholder="搜尋問卷標題..." (keyup.enter)="onSearch()" />
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="searchName"
+              placeholder="搜尋問卷標題..."
+              (keyup.enter)="onSearch()"
+            />
           </div>
 
           <div class="form-group">
             <label>開始時間：</label>
-            <input type="date" class="form-control" [(ngModel)]="startDate" (change)="onSearch()" />
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="startDate"
+              (change)="onSearch()"
+            />
           </div>
 
           <div class="form-group">
             <label>結束時間：</label>
-            <input type="date" class="form-control" [(ngModel)]="endDate" (change)="onSearch()" />
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="endDate"
+              (change)="onSearch()"
+            />
           </div>
 
           <div class="form-group" style="flex-direction: row; gap: 8px;">
@@ -55,7 +71,11 @@ import { AuthService } from '../../../core/services/auth.service';
             <tr *ngFor="let quiz of quizzes">
               <td>#{{ quiz.id }}</td>
               <td>
-                <a *ngIf="quiz.canFill" [routerLink]="['/quiz', quiz.id, 'form']" style="font-weight: 600;">
+                <a
+                  *ngIf="quiz.canFill"
+                  [routerLink]="['/quiz', quiz.id, 'form']"
+                  style="font-weight: 600;"
+                >
                   {{ quiz.name }}
                 </a>
                 <span *ngIf="!quiz.canFill" style="color: #64748b;">
@@ -63,25 +83,40 @@ import { AuthService } from '../../../core/services/auth.service';
                 </span>
               </td>
               <td>
-                <span class="badge" [ngClass]="{
-                  'badge-notstarted': quiz.status === 'NOT_STARTED',
-                  'badge-inprogress': quiz.status === 'IN_PROGRESS',
-                  'badge-ended': quiz.status === 'ENDED'
-                }">
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'badge-notstarted': quiz.status === 'NOT_STARTED',
+                    'badge-inprogress': quiz.status === 'IN_PROGRESS',
+                    'badge-ended': quiz.status === 'ENDED',
+                  }"
+                >
                   {{ quiz.statusLabel }}
                 </span>
               </td>
               <td>{{ quiz.startDate }}</td>
               <td>{{ quiz.endDate }}</td>
               <td style="text-align: center;">
-                <a *ngIf="quiz.canViewStats" [routerLink]="['/quiz', quiz.id, 'stats']" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.825rem;">
+                <a
+                  *ngIf="quiz.canViewStats"
+                  [routerLink]="['/quiz', quiz.id, 'stats']"
+                  class="btn btn-outline"
+                  style="padding: 4px 10px; font-size: 0.825rem;"
+                >
                   前往
                 </a>
-                <span *ngIf="!quiz.canViewStats" style="color: #cbd5e1; font-size: 0.85rem;">-</span>
+                <span
+                  *ngIf="!quiz.canViewStats"
+                  style="color: #cbd5e1; font-size: 0.85rem;"
+                  >-</span
+                >
               </td>
             </tr>
             <tr *ngIf="quizzes.length === 0">
-              <td colspan="6" style="text-align: center; color: #94a3b8; padding: 32px;">
+              <td
+                colspan="6"
+                style="text-align: center; color: #94a3b8; padding: 32px;"
+              >
                 目前沒有符合條件的問卷資料
               </td>
             </tr>
@@ -91,35 +126,57 @@ import { AuthService } from '../../../core/services/auth.service';
 
       <!-- Pagination -->
       <div class="pagination" *ngIf="totalPages > 1">
-        <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0">&laquo; 前頁</button>
-        <button *ngFor="let page of pagesArray" (click)="changePage(page)" [class.active]="currentPage === page">
+        <button
+          (click)="changePage(currentPage - 1)"
+          [disabled]="currentPage === 0"
+        >
+          &laquo; 前頁
+        </button>
+        <button
+          *ngFor="let page of pagesArray"
+          (click)="changePage(page)"
+          [class.active]="currentPage === page"
+        >
           {{ page + 1 }}
         </button>
-        <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">後頁 &raquo;</button>
+        <button
+          (click)="changePage(currentPage + 1)"
+          [disabled]="currentPage === totalPages - 1"
+        >
+          後頁 &raquo;
+        </button>
       </div>
     </div>
-  `
+  `,
 })
 export class QuizListComponent implements OnInit {
   quizzes: QuizListItem[] = [];
-  searchName = '';
-  startDate = '';
-  endDate = '';
+  searchName = "";
+  startDate = "";
+  endDate = "";
 
   currentPage = 0;
   pageSize = 10;
   totalPages = 0;
   pagesArray: number[] = [];
 
-  constructor(private quizService: QuizService, private auth: AuthService, private router: Router) {}
+  constructor(
+    private quizService: QuizService,
+    private auth: AuthService,
+    private router: Router,
+  ) {}
 
   createQuiz(): void {
     if (!this.auth.user) {
-      alert('請登入建立表單!!');
-      this.router.navigate(['/login'], { queryParams: { returnUrl: '/member/quizzes/new' } });
+      alert("請登入建立表單!!");
+      this.router.navigate(["/login"], {
+        queryParams: { returnUrl: "/member/quizzes/new" },
+      });
       return;
     }
-    this.router.navigate([this.auth.isAdmin ? '/admin/new' : '/member/quizzes/new']);
+    this.router.navigate([
+      this.auth.isAdmin ? "/admin/new" : "/member/quizzes/new",
+    ]);
   }
 
   ngOnInit(): void {
@@ -127,24 +184,29 @@ export class QuizListComponent implements OnInit {
   }
 
   loadQuizzes(): void {
-    this.quizService.getFrontQuizzes(
-      this.searchName.trim() || undefined,
-      this.startDate || undefined,
-      this.endDate || undefined,
-      this.currentPage,
-      this.pageSize
-    ).subscribe(res => {
-      if (res.success && res.data) {
-        this.quizzes = res.data.content;
-        this.totalPages = res.data.totalPages;
-        this.pagesArray = Array.from({ length: this.totalPages }, (_, i) => i);
-      }
-    });
+    this.quizService
+      .getFrontQuizzes(
+        this.searchName.trim() || undefined,
+        this.startDate || undefined,
+        this.endDate || undefined,
+        this.currentPage,
+        this.pageSize,
+      )
+      .subscribe((res) => {
+        if (res.success && res.data) {
+          this.quizzes = res.data.content;
+          this.totalPages = res.data.totalPages;
+          this.pagesArray = Array.from(
+            { length: this.totalPages },
+            (_, i) => i,
+          );
+        }
+      });
   }
 
   onSearch(): void {
     if (this.startDate && this.endDate && this.endDate < this.startDate) {
-      alert('問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!');
+      alert("問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!");
       return;
     }
     this.currentPage = 0;
@@ -152,9 +214,9 @@ export class QuizListComponent implements OnInit {
   }
 
   onReset(): void {
-    this.searchName = '';
-    this.startDate = '';
-    this.endDate = '';
+    this.searchName = "";
+    this.startDate = "";
+    this.endDate = "";
     this.currentPage = 0;
     this.loadQuizzes();
   }

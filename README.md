@@ -44,10 +44,10 @@ Copy-Item backend/src/main/resources/application-local.example.yml `
 
 `application-local.yml` 已由 Git 忽略，不得提交。既有資料庫只應執行 [`docs/requirements/migrations/`](./docs/requirements/migrations/) 中需要的非破壞性 Migration；**不要為了更新既有環境重跑完整 `init.sql`**，否則會刪除會員、問卷與填答資料。
 
-後端啟動前必須提供至少 32 UTF-8 bytes 的 JWT Secret：
+`local` profile 未設定 `JWT_SECRET` 時會為每次後端程序自動產生臨時 Secret，因此可直接啟動。若希望後端重啟後既有 Token 仍有效，請提供至少 32 UTF-8 bytes 的固定本機 Secret：
 
 ```powershell
-$env:JWT_SECRET = '<由安全工具產生的本機 Secret>'
+$env:JWT_SECRET = '<由安全工具產生的本機 Secret>' # local 選填，正式環境必填
 $env:JWT_EXPIRATION_SECONDS = '86400' # 選填，預設 24 小時
 $env:BCRYPT_STRENGTH = '12'           # 選填，預設 12
 ```

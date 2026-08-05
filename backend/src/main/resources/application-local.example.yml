@@ -15,6 +15,7 @@ app:
       # BCrypt work factor; production/local default is 12.
       bcrypt-strength: ${BCRYPT_STRENGTH:12}
     jwt:
-      # Required environment variable; use at least 32 UTF-8 bytes.
-      secret: ${JWT_SECRET}
+      # Prefer JWT_SECRET for tokens that survive restarts. Without it, local
+      # development gets an ephemeral 64-character secret for this process.
+      secret: "${JWT_SECRET:${random.value}${random.value}}"
       expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
