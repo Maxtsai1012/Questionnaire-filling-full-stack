@@ -18,7 +18,13 @@
           >首頁</a
         >
         <a routerLink="/quiz">瀏覽問卷</a>
-        <button *ngIf="!auth.user" type="button" (click)="createQuestionnaire()">建立問卷</button>
+        <button
+          *ngIf="!auth.user"
+          type="button"
+          (click)="createQuestionnaire()"
+        >
+          建立問卷
+        </button>
         <a *ngIf="auth.user?.role === 'MEMBER'" routerLink="/member/quizzes/new"
           >建立問卷</a
         >
@@ -68,11 +74,14 @@
               class="ds-button ds-button--outline"
               type="button"
               (click)="createQuestionnaire()"
-              >登入建立問卷</button
             >
+              登入建立問卷
+            </button>
           </div>
           <div class="home-hero__actions" *ngIf="auth.user?.role === 'MEMBER'">
-            <a class="ds-button ds-button--primary" [routerLink]="auth.isAdmin ? '/admin/new' : '/member/quizzes/new'"
+            <a
+              class="ds-button ds-button--primary"
+              [routerLink]="auth.isAdmin ? '/admin/new' : '/member/quizzes/new'"
               >建立問卷 <span aria-hidden="true">→</span></a
             >
             <a class="ds-button ds-button--outline" routerLink="/quiz"
@@ -172,9 +181,12 @@
               *ngIf="!auth.user"
               type="button"
               (click)="createQuestionnaire()"
-              >登入開始建立 <span aria-hidden="true">→</span></button
             >
-            <a *ngIf="auth.user?.role === 'MEMBER'" routerLink="/member/quizzes/new"
+              登入開始建立 <span aria-hidden="true">→</span>
+            </button>
+            <a
+              *ngIf="auth.user?.role === 'MEMBER'"
+              routerLink="/member/quizzes/new"
               >開始建立 <span aria-hidden="true">→</span></a
             >
             <a *ngIf="auth.isAdmin" routerLink="/admin"
@@ -249,11 +261,14 @@
             class="ds-button home-cta__outline"
             type="button"
             (click)="createQuestionnaire()"
-            >登入建立問卷</button
           >
+            登入建立問卷
+          </button>
         </div>
         <div class="home-cta__actions" *ngIf="auth.user?.role === 'MEMBER'">
-          <a class="ds-button home-cta__primary" [routerLink]="auth.isAdmin ? '/admin/new' : '/member/quizzes/new'"
+          <a
+            class="ds-button home-cta__primary"
+            [routerLink]="auth.isAdmin ? '/admin/new' : '/member/quizzes/new'"
             >建立問卷</a
           >
           <a class="ds-button home-cta__outline" routerLink="/quiz">瀏覽問卷</a>
@@ -265,10 +280,13 @@
           <a class="ds-button home-cta__outline" routerLink="/quiz">瀏覽問卷</a>
         </div>
       </div>
+      <div class="ds-section-container home-footer__bottom">
+        © 2026 Max, all rights reserved.
+      </div>
     </section>
   </main>
 
-  <footer class="home-footer">
+  <!-- <footer class="home-footer">
     <div class="ds-section-container home-footer__inner">
       <div class="home-logo home-logo--footer">
         <span class="home-logo__mark" aria-hidden="true">
@@ -286,7 +304,7 @@
       </nav>
     </div>
     <div class="ds-section-container home-footer__bottom">
-      © 2026 動態問卷系統
+      © 2026 Max, all rights reserved.
     </div>
-  </footer>
+  </footer> -->
 </div>

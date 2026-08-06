@@ -2,7 +2,11 @@ import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AuthService } from "../../core/services/auth.service";
-import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/validators";
+import {
+  PATTERNS,
+  normalizeName,
+  normalizePhone,
+} from "../../core/utils/validators";
 
 @Component({
   selector: "app-member-profile",
@@ -16,7 +20,7 @@ import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/valida
         <div class="account-heading account-heading--left">
           <span class="ds-badge ds-badge--accent">會員中心</span>
           <h1 id="profile-title">會員資料</h1>
-          <p>更新聯絡資料或設定新密碼。電子信箱與角色維持唯讀。</p>
+          <p>更新您的資料或設定新密碼。電子信箱與角色為唯讀，不可修改。</p>
         </div>
 
         <div class="profile-summary" aria-label="帳號資訊">
