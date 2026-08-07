@@ -4,15 +4,15 @@
 
 ## 靜態檢查
 
-| 項目 | 指令 | 結果 |
-|---|---|---|
-| Git 差異空白檢查 | `git diff --check` | 通過，無 whitespace error |
-| Angular Build（首次） | `npm run build` | 未執行完成：專案原先沒有 node_modules，缺少 Angular builder |
-| 安裝鎖定依賴 | `npm ci`、`npm ci --cache .npm-cache` | 失敗：本機 npm 回報 `Exit handler never called`；產生的暫存 cache 已移除 |
-| Angular Build（最新重試） | `npm ci --cache .npm-cache`、`npm run build` | 通過；bundle 輸出至 `frontend/dist/survey-frontend` |
-| Maven Test | `.\mvnw.cmd test` | 未執行：專案沒有 Maven Wrapper |
-| 系統 Maven | `mvn -v` | 未執行：系統沒有 Maven |
-| Docker Build | `docker compose build backend frontend` | 未執行：系統沒有 Docker CLI |
+| 項目                      | 指令                                         | 結果                                                                     |
+| ------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
+| Git 差異空白檢查          | `git diff --check`                           | 通過，無 whitespace error                                                |
+| Angular Build（首次）     | `npm run build`                              | 未執行完成：專案原先沒有 node_modules，缺少 Angular builder              |
+| 安裝鎖定依賴              | `npm ci`、`npm ci --cache .npm-cache`        | 失敗：本機 npm 回報 `Exit handler never called`；產生的暫存 cache 已移除 |
+| Angular Build（最新重試） | `npm ci --cache .npm-cache`、`npm run build` | 通過；bundle 輸出至 `frontend/dist/survey-frontend`                      |
+| Maven Test                | `.\mvnw.cmd test`                            | 未執行：專案沒有 Maven Wrapper                                           |
+| 系統 Maven                | `mvn -v`                                     | 未執行：系統沒有 Maven                                                   |
+| Docker Build              | `docker compose build backend frontend`      | 未執行：系統沒有 Docker CLI                                              |
 
 Angular build 已通過；Maven test、瀏覽器與 MySQL 整合測試仍未執行。已新增 `SubmissionEligibilityServiceTest`，待 Maven 可用時執行。
 
@@ -71,7 +71,7 @@ HAVING COUNT(*) > 1;
 ## 手動驗收清單
 
 - [ ] 首頁預設進入公開問卷列表。
-- [ ] 訪客點新增問卷顯示「請登入建立表單!!」並前往登入。
+- [ ] 訪客點新增問卷顯示「請您先登入，再建立表單 ！」並前往登入。
 - [ ] MEMBER 登入回前台；ADMIN 登入進後台。
 - [ ] MEMBER 不能進 `/admin`；未授權呼叫 `/api/admin/**` 得 401/403。
 - [ ] 搜尋結束日期早於開始日期時不發 API 並顯示指定訊息。

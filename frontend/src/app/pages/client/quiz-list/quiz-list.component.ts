@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
-import { QuizService } from '../../../core/services/quiz.service';
-import { QuizListItem } from '../../../core/models/survey.model';
-import { AuthService } from '../../../core/services/auth.service';
-import { createPaginationState, updatePagination, PaginationState } from '../../../core/utils/pagination.helper';
+import { Component, OnInit } from "@angular/core";
+import { QuizService } from "../../../core/services/quiz.service";
+import { QuizListItem } from "../../../core/models/survey.model";
+import { AuthService } from "../../../core/services/auth.service";
+import {
+  createPaginationState,
+  updatePagination,
+  PaginationState,
+} from "../../../core/utils/pagination.helper";
 
 @Component({
   selector: "app-quiz-list",
@@ -124,32 +128,10 @@ import { createPaginationState, updatePagination, PaginationState } from '../../
         </table>
       </div>
 
-<<<<<<< HEAD
-      <!-- Pagination -->
-      <div class="pagination" *ngIf="totalPages > 1">
-        <button
-          (click)="changePage(currentPage - 1)"
-          [disabled]="currentPage === 0"
-        >
-          &laquo; 前頁
-        </button>
-        <button
-          *ngFor="let page of pagesArray"
-          (click)="changePage(page)"
-          [class.active]="currentPage === page"
-        >
-          {{ page + 1 }}
-        </button>
-        <button
-          (click)="changePage(currentPage + 1)"
-          [disabled]="currentPage === totalPages - 1"
-        >
-          後頁 &raquo;
-        </button>
-      </div>
-=======
-      <app-pagination [state]="pagination" (pageChange)="changePage($event)"></app-pagination>
->>>>>>> inSchool
+      <app-pagination
+        [state]="pagination"
+        (pageChange)="changePage($event)"
+      ></app-pagination>
     </div>
   `,
 })
@@ -161,30 +143,13 @@ export class QuizListComponent implements OnInit {
 
   pagination: PaginationState = createPaginationState(10);
 
-<<<<<<< HEAD
   constructor(
     private quizService: QuizService,
     private auth: AuthService,
-    private router: Router,
   ) {}
 
   createQuiz(): void {
-    if (!this.auth.user) {
-      alert("請登入建立表單!!");
-      this.router.navigate(["/login"], {
-        queryParams: { returnUrl: "/member/quizzes/new" },
-      });
-      return;
-    }
-    this.router.navigate([
-      this.auth.isAdmin ? "/admin/new" : "/member/quizzes/new",
-    ]);
-=======
-  constructor(private quizService: QuizService, private auth: AuthService) {}
-
-  createQuiz(): void {
     this.auth.navigateToCreateOrLogin();
->>>>>>> inSchool
   }
 
   ngOnInit(): void {
@@ -192,44 +157,25 @@ export class QuizListComponent implements OnInit {
   }
 
   loadQuizzes(): void {
-<<<<<<< HEAD
     this.quizService
       .getFrontQuizzes(
         this.searchName.trim() || undefined,
         this.startDate || undefined,
         this.endDate || undefined,
-        this.currentPage,
-        this.pageSize,
+        this.pagination.currentPage,
+        this.pagination.pageSize,
       )
       .subscribe((res) => {
         if (res.success && res.data) {
           this.quizzes = res.data.content;
-          this.totalPages = res.data.totalPages;
-          this.pagesArray = Array.from(
-            { length: this.totalPages },
-            (_, i) => i,
-          );
+          updatePagination(this.pagination, res.data.totalPages);
         }
       });
-=======
-    this.quizService.getFrontQuizzes(
-      this.searchName.trim() || undefined,
-      this.startDate || undefined,
-      this.endDate || undefined,
-      this.pagination.currentPage,
-      this.pagination.pageSize
-    ).subscribe(res => {
-      if (res.success && res.data) {
-        this.quizzes = res.data.content;
-        updatePagination(this.pagination, res.data.totalPages);
-      }
-    });
->>>>>>> inSchool
   }
 
   onSearch(): void {
     if (this.startDate && this.endDate && this.endDate < this.startDate) {
-      alert("問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!");
+      alert("問卷結束時間不能早於開始時間，請重新選擇！");
       return;
     }
     this.pagination.currentPage = 0;
@@ -237,17 +183,10 @@ export class QuizListComponent implements OnInit {
   }
 
   onReset(): void {
-<<<<<<< HEAD
     this.searchName = "";
     this.startDate = "";
     this.endDate = "";
-    this.currentPage = 0;
-=======
-    this.searchName = '';
-    this.startDate = '';
-    this.endDate = '';
     this.pagination.currentPage = 0;
->>>>>>> inSchool
     this.loadQuizzes();
   }
 

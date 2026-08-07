@@ -41,7 +41,7 @@ public class QuizManagementService {
      */
     public void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!");
+            throw new IllegalArgumentException("問卷結束時間不能早於開始時間，請重新選擇！");
         }
     }
 

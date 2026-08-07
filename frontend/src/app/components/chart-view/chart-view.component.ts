@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
-import { Chart, registerables } from 'chart.js';
+import { Chart, Plugin, registerables } from 'chart.js';
 import { OptionStat } from '../../core/models/survey.model';
 
 Chart.register(...registerables);
@@ -16,9 +16,9 @@ Chart.register(...registerables);
     .chart-container {
       position: relative;
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       margin: 16px auto;
-      height: 360px;
+      height: 380px;
     }
     .chart-empty {
       height: 100%;
@@ -36,11 +36,43 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private chart: Chart | null = null;
 
-  private colors = [
+  private readonly pieColors = [
+    '#1F8196', '#214A58', '#3FC0D1', '#7BDBE5', '#EFFCFC'
+  ];
+
+  private readonly barColors = [
     '#4f6edb', '#b6dc22', '#555978', '#ff9749',
     '#18a5d1', '#ec4899', '#8b5cf6', '#10b981',
     '#64748b', '#d97706'
   ];
+
+  private readonly centerHoverLabelPlugin: Plugin<'doughnut'> = {
+    id: 'centerHoverLabel',
+    afterDraw: (chart) => {
+      const activeElements = chart.getActiveElements();
+      if (!activeElements.length) return;
+
+      const { ctx, chartArea } = chart;
+      const active = activeElements[0];
+      const label = String(chart.data.labels?.[active.index] || '');
+      const value = Number(chart.data.datasets[0].data[active.index] || 0);
+      const total = this.options.reduce((sum, option) => sum + option.count, 0);
+      const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+      const centerX = (chartArea.left + chartArea.right) / 2;
+      const centerY = (chartArea.top + chartArea.bottom) / 2;
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#17232c';
+      ctx.font = "700 28px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText(`${percentage}%`, centerX, centerY - 10);
+      ctx.fillStyle = '#52616b';
+      ctx.font = "600 12px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText(label, centerX, centerY + 18);
+      ctx.restore();
+    }
+  };
 
   get hasData(): boolean {
     return this.options.some(option => option.count > 0);
@@ -82,24 +114,38 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
           labels: labels,
           datasets: [{
             data: data,
-            backgroundColor: this.colors.slice(0, labels.length),
-            borderWidth: 8,
+            backgroundColor: labels.map((_, index) => this.pieColors[index % this.pieColors.length]),
+            borderWidth: 2,
             borderColor: '#ffffff',
             borderRadius: 10,
             spacing: 4,
-            hoverOffset: 8
+            hoverOffset: 10
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: '55%',
+          radius: '70%',
+          cutout: '40%',
+          layout: {
+            padding: {
+              top: 8,
+              right: 16,
+              bottom: 8,
+              left: 16
+            }
+          },
           plugins: {
             legend: {
               position: 'top',
+              align: 'center',
               labels: {
+                color: '#52616b',
+                boxWidth: 28,
+                boxHeight: 14,
+                borderRadius: 3,
                 font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 },
-                padding: 14,
+                padding: 16,
                 usePointStyle: true,
                 pointStyle: 'rectRounded'
               }
@@ -114,7 +160,8 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
               }
             }
           }
-        }
+        },
+        plugins: [this.centerHoverLabelPlugin]
       });
     } else {
       this.chart = new Chart(ctx, {
@@ -124,7 +171,7 @@ export class ChartViewComponent implements AfterViewInit, OnChanges, OnDestroy {
           datasets: [{
             label: '票數',
             data: data,
-            backgroundColor: '#3b82f6',
+            backgroundColor: this.barColors[0],
             borderRadius: 6
           }]
         },

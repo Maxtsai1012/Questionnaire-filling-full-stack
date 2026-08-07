@@ -1,18 +1,23 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { BehaviorSubject, catchError, Observable, tap, throwError } from 'rxjs';
-import { ApiResponse, AuthUser } from '../models/survey.model';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Router } from "@angular/router";
+import { BehaviorSubject, catchError, Observable, tap, throwError } from "rxjs";
+import { ApiResponse, AuthUser } from "../models/survey.model";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
-  private readonly storageKey = 'survey_auth';
+  private readonly storageKey = "survey_auth";
   private logoutInProgress = false;
-  private subject = new BehaviorSubject<AuthUser | null>(this.readSessionStorage());
+  private subject = new BehaviorSubject<AuthUser | null>(
+    this.readSessionStorage(),
+  );
 
   user$ = this.subject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+  ) {}
 
   get user(): AuthUser | null {
     return this.subject.value;
@@ -23,7 +28,7 @@ export class AuthService {
   }
 
   get isAdmin(): boolean {
-    return this.user?.role === 'ADMIN';
+    return this.user?.role === "ADMIN";
   }
 
   get isAuthenticated(): boolean {
@@ -36,53 +41,71 @@ export class AuthService {
    * repeating `isAdmin ? '/admin' : '/member/quizzes'` in every template.
    */
   get managementBase(): string {
-    return this.isAdmin ? '/admin' : '/member/quizzes';
+    return this.isAdmin ? "/admin" : "/member/quizzes";
   }
 
   login(email: string, password: string): Observable<ApiResponse<AuthUser>> {
-    return this.http.post<ApiResponse<AuthUser>>('/api/auth/login', { email, password }).pipe(
-      tap(res => res.success && this.saveSession(res.data))
-    );
+    return this.http
+      .post<ApiResponse<AuthUser>>("/api/auth/login", { email, password })
+      .pipe(tap((res) => res.success && this.saveSession(res.data)));
   }
 
-  register(name: string, phone: string, email: string, password: string): Observable<ApiResponse<AuthUser>> {
-    return this.http.post<ApiResponse<AuthUser>>('/api/auth/register', { name, phone, email, password }).pipe(
-      tap(res => res.success && this.saveSession(res.data))
-    );
+  register(
+    name: string,
+    phone: string,
+    email: string,
+    password: string,
+  ): Observable<ApiResponse<AuthUser>> {
+    return this.http
+      .post<
+        ApiResponse<AuthUser>
+      >("/api/auth/register", { name, phone, email, password })
+      .pipe(tap((res) => res.success && this.saveSession(res.data)));
   }
 
-  updateProfile(name: string, phone: string, newPassword?: string): Observable<ApiResponse<AuthUser>> {
-    return this.http.put<ApiResponse<AuthUser>>('/api/auth/me', { name, phone, newPassword }).pipe(
-      tap(res => res.success && this.saveSession(res.data))
-    );
+  updateProfile(
+    name: string,
+    phone: string,
+    newPassword?: string,
+  ): Observable<ApiResponse<AuthUser>> {
+    return this.http
+      .put<ApiResponse<AuthUser>>("/api/auth/me", { name, phone, newPassword })
+      .pipe(tap((res) => res.success && this.saveSession(res.data)));
   }
 
   me(): Observable<ApiResponse<AuthUser>> {
-    return this.http.get<ApiResponse<AuthUser>>('/api/auth/me');
+    return this.http.get<ApiResponse<AuthUser>>("/api/auth/me");
   }
 
   validateStoredSession(): void {
     const validatingToken = this.token;
     if (!validatingToken) return;
 
-    this.me().pipe(
-      tap(res => {
-        if (res.success && this.token === validatingToken) {
-          this.saveSession({ ...res.data, token: validatingToken });
-        }
-      }),
-      catchError(error => {
-        if (this.token !== validatingToken) {
+    this.me()
+      .pipe(
+        tap((res) => {
+          if (res.success && this.token === validatingToken) {
+            this.saveSession({ ...res.data, token: validatingToken });
+          }
+        }),
+        catchError((error) => {
+          if (this.token !== validatingToken) {
+            return throwError(() => error);
+          }
+          this.clearSession();
+          const currentUrl = this.router.url;
+          if (
+            currentUrl.startsWith("/member/") ||
+            currentUrl.startsWith("/admin")
+          ) {
+            this.router.navigate(["/login"], {
+              queryParams: { returnUrl: currentUrl },
+            });
+          }
           return throwError(() => error);
-        }
-        this.clearSession();
-        const currentUrl = this.router.url;
-        if (currentUrl.startsWith('/member/') || currentUrl.startsWith('/admin')) {
-          this.router.navigate(['/login'], { queryParams: { returnUrl: currentUrl } });
-        }
-        return throwError(() => error);
-      })
-    ).subscribe({ error: () => undefined });
+        }),
+      )
+      .subscribe({ error: () => undefined });
   }
 
   clearSession(): void {
@@ -97,9 +120,9 @@ export class AuthService {
       return;
     }
     this.logoutInProgress = true;
-    this.http.post<ApiResponse<null>>('/api/auth/logout', {}).subscribe({
+    this.http.post<ApiResponse<null>>("/api/auth/logout", {}).subscribe({
       next: () => this.finishLogout(true),
-      error: () => this.finishLogout(false)
+      error: () => this.finishLogout(false),
     });
   }
 
@@ -108,17 +131,22 @@ export class AuthService {
    */
   navigateToCreateOrLogin(): void {
     if (!this.user) {
-      alert('請登入建立表單!!');
-      this.router.navigate(['/login'], { queryParams: { returnUrl: '/member/quizzes/new' } });
+      alert("請您先登入，再建立表單 ！");
+      this.router.navigate(["/login"], {
+        queryParams: { returnUrl: "/member/quizzes/new" },
+      });
       return;
     }
-    this.router.navigate([this.managementBase, 'new']);
+    this.router.navigate([this.managementBase, "new"]);
   }
 
   private finishLogout(serverConfirmed: boolean): void {
     this.logoutInProgress = false;
     this.clearSession();
-    this.router.navigate(['/quiz'], serverConfirmed ? {} : { queryParams: { logout: 'local-only' } });
+    this.router.navigate(
+      ["/quiz"],
+      serverConfirmed ? {} : { queryParams: { logout: "local-only" } },
+    );
   }
 
   private saveSession(user: AuthUser): void {
@@ -128,12 +156,12 @@ export class AuthService {
 
   private readSessionStorage(): AuthUser | null {
     try {
-      const value = JSON.parse(localStorage.getItem(this.storageKey) || 'null');
+      const value = JSON.parse(localStorage.getItem(this.storageKey) || "null");
       if (
         !value ||
-        typeof value.token !== 'string' ||
-        value.token.split('.').length !== 3 ||
-        (value.role !== 'MEMBER' && value.role !== 'ADMIN')
+        typeof value.token !== "string" ||
+        value.token.split(".").length !== 3 ||
+        (value.role !== "MEMBER" && value.role !== "ADMIN")
       ) {
         localStorage.removeItem(this.storageKey);
         return null;

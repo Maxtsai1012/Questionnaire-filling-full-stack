@@ -14,19 +14,19 @@ import java.util.List;
 public class ResponseSubmitDto {
     private Integer quizId;
 
-    @NotBlank(message = "姓名不能為空")
-    @Pattern(regexp = "^[\\p{IsHan}A-Za-z]+(?:[ ]+[\\p{IsHan}A-Za-z]+)*$", message = "只允許填寫中文和英文!!")
+    @NotBlank(message = "姓名不能為空！")
+    @Pattern(regexp = "^[\\p{IsHan}A-Za-z]+(?:[ ]+[\\p{IsHan}A-Za-z]+)*$", message = "只允許填寫中文和英文！")
     private String respondentName;
 
-    @NotBlank(message = "手機不能為空")
-    @Pattern(regexp = "^09\\d{8}$", message = "手機格式不符!!")
+    @NotBlank(message = "手機不能為空！")
+    @Pattern(regexp = "^09\\d{8}$", message = "手機格式不符！")
     private String phone;
 
-    @NotBlank(message = "Email 不能為空")
-    @Email(message = "信箱格式不符!!")
+    @NotBlank(message = "Email 不能為空！")
+    @Email(message = "信箱格式不符！")
     private String email;
 
-    @Min(value = 0, message = "年齡不得為負數!!")
+    @Min(value = 0, message = "年齡不得為負數！")
     private Integer age;
 
     private List<AnswerSubmitDto> answers;

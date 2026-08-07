@@ -13,16 +13,16 @@ import java.util.List;
 public class QuizSaveRequestDto {
     private Integer id;
 
-    @NotBlank(message = "問卷名稱不能為空")
+    @NotBlank(message = "問卷名稱不能為空！")
     private String name;
 
-    @NotBlank(message = "問卷說明不能為空")
+    @NotBlank(message = "問卷說明不能為空！")
     private String description;
 
-    @NotNull(message = "開始時間不能為空")
+    @NotNull(message = "開始時間不能為空！")
     private LocalDate startDate;
 
-    @NotNull(message = "結束時間不能為空")
+    @NotNull(message = "結束時間不能為空！")
     private LocalDate endDate;
 
     private Boolean isPublished = false;

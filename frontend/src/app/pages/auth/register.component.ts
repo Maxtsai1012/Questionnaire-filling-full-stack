@@ -2,7 +2,11 @@ import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AuthService } from "../../core/services/auth.service";
-import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/validators";
+import {
+  PATTERNS,
+  normalizeName,
+  normalizePhone,
+} from "../../core/utils/validators";
 
 @Component({
   selector: "app-register",
@@ -94,12 +98,22 @@ import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/valida
               autocomplete="email"
               [(ngModel)]="email"
               (ngModelChange)="clearFieldError('email')"
-              placeholder="you@example.com"
+              placeholder="user@example.com"
               [attr.aria-invalid]="!!errors['email']"
               [attr.aria-describedby]="
                 errors['email'] ? 'register-email-error' : null
               "
             />
+            <!-- 1. 沒有錯誤時顯示的提示字 -->
+            <p
+              class="account-hint"
+              id="register-email-hint"
+              *ngIf="!errors['email']"
+            >
+              請輸入有效的電子信箱格式，作為您的登入帳號。
+            </p>
+
+            <!-- 2. 出現錯誤時顯示的紅字 -->
             <p
               class="account-error"
               id="register-email-error"
@@ -119,6 +133,7 @@ import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/valida
               type="password"
               autocomplete="new-password"
               [(ngModel)]="password"
+              placeholder="至少8碼英數混合"
               (ngModelChange)="clearPasswordErrors()"
               [attr.aria-invalid]="!!errors['password']"
               [attr.aria-describedby]="
@@ -131,9 +146,7 @@ import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/valida
               class="account-hint"
               id="register-password-hint"
               *ngIf="!errors['password']"
-            >
-              請設定登入密碼。
-            </p>
+            ></p>
             <p
               class="account-error"
               id="register-password-error"
@@ -153,6 +166,7 @@ import { PATTERNS, normalizeName, normalizePhone } from "../../core/utils/valida
               type="password"
               autocomplete="new-password"
               [(ngModel)]="confirmPassword"
+              placeholder="請再次輸入密碼"
               (ngModelChange)="clearFieldError('confirmPassword')"
               [attr.aria-invalid]="!!errors['confirmPassword']"
               [attr.aria-describedby]="

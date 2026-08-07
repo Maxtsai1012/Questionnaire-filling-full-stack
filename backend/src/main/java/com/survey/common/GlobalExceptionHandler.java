@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
-        return ApiResponse.error("VALIDATION_ERROR", "資料內容有誤，請您修改後再送出!!", errors);
+        return ApiResponse.error("VALIDATION_ERROR", "資料內容有誤，請您修改後再送出！", errors);
     }
 
     @ExceptionHandler(RequestValidationException.class)

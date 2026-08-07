@@ -193,7 +193,7 @@ public class QuizResponseService {
             if (type == QuestionType.T) {
                 String text = item == null || item.getAnswer() == null ? "" : item.getAnswer().trim();
                 if (Boolean.TRUE.equals(question.getIsRequired()) && text.isEmpty()) {
-                    errors.put(field, "此題為必填項目!!");
+                    errors.put(field, "此題為必填項目！");
                 }
                 continue;
             }
@@ -202,17 +202,17 @@ public class QuizResponseService {
                     ? List.of() : item.getOptionCodes();
             if (codes.isEmpty()) {
                 if (Boolean.TRUE.equals(question.getIsRequired())) {
-                    errors.put(field, "此題為必填項目!!");
+                    errors.put(field, "此題為必填項目！");
                 }
                 continue;
             }
             if (type == QuestionType.Q && codes.size() > 1) {
-                errors.put(field, "單選題只能選擇一個選項!!");
+                errors.put(field, "單選題只能選擇一個選項！");
                 continue;
             }
             Map<Integer, QuizOption> allowed = optionsByQuestion.getOrDefault(question.getId(), Map.of());
             if (!allowed.keySet().containsAll(codes)) {
-                errors.put(field, "答案選項不合法!!");
+                errors.put(field, "答案選項不合法！");
             }
         }
 
