@@ -2,6 +2,11 @@ import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AuthService } from "../../core/services/auth.service";
+import {
+  PATTERNS,
+  normalizeName,
+  normalizePhone,
+} from "../../core/utils/validators";
 
 @Component({
   selector: "app-member-profile",
@@ -15,7 +20,7 @@ import { AuthService } from "../../core/services/auth.service";
         <div class="account-heading account-heading--left">
           <span class="ds-badge ds-badge--accent">會員中心</span>
           <h1 id="profile-title">會員資料</h1>
-          <p>更新聯絡資料或設定新密碼。電子信箱與角色維持唯讀。</p>
+          <p>更新您的資料或設定新密碼。電子信箱與角色為唯讀，不可修改。</p>
         </div>
 
         <div class="profile-summary" aria-label="帳號資訊">
@@ -196,21 +201,27 @@ export class ProfileComponent implements OnInit {
     this.errors = {};
     this.message = "";
     this.success = false;
-    const phone = this.phone.replace(/[\s-]/g, "");
-    const name = this.name.trim().replace(/\s+/g, " ");
-    const namePattern =
-      /^[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+(?: [\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFFA-Za-z]+)*$/;
-    if (!name) this.errors["name"] = "請輸入姓名。";
-    else if (!namePattern.test(name))
+
+    const cleanedPhone = normalizePhone(this.phone);
+    const cleanedName = normalizeName(this.name);
+
+    if (!cleanedName) {
+      this.errors["name"] = "請輸入姓名。";
+    } else if (!PATTERNS.NAME.test(cleanedName)) {
       this.errors["name"] = "姓名只能包含中文、英文與字詞間空格。";
-    if (!phone) this.errors["phone"] = "請輸入手機號碼。";
-    else if (!/^09\d{8}$/.test(phone))
+    }
+
+    if (!cleanedPhone) {
+      this.errors["phone"] = "請輸入手機號碼。";
+    } else if (!PATTERNS.PHONE.test(cleanedPhone)) {
       this.errors["phone"] = "請輸入 09 開頭的 10 位數手機號碼。";
+    }
+
     if (Object.keys(this.errors).length) return;
 
     this.saving = true;
     this.auth
-      .updateProfile(name, phone, this.newPassword)
+      .updateProfile(cleanedName, cleanedPhone, this.newPassword)
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: (response) => {

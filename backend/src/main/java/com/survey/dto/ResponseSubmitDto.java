@@ -39,7 +39,8 @@ public class ResponseSubmitDto {
         this.phone = phone == null ? null : phone.replaceAll("[\\s-]", "");
     }
 
+    /** 一律存小寫，讓 uk_quiz_email 這個唯一鍵不必依賴 collation 是否分大小寫。 */
     public void setEmail(String email) {
-        this.email = email == null ? null : email.trim();
+        this.email = email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 }

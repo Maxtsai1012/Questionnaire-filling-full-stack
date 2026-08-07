@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminQuizService } from '../../../core/services/admin-quiz.service';
-import { QuizService } from '../../../core/services/quiz.service';
-import { OptionItem, QuestionSave, QuestionType, QuizSaveRequest } from '../../../core/models/survey.model';
+import { MemberQuizService } from '../../../core/services/member-quiz.service';
+import { OptionItem, QuestionDraft, QuestionType, QuizSaveRequest, getQuestionTypeLabel } from '../../../core/models/survey.model';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -32,23 +32,27 @@ import { AuthService } from '../../../core/services/auth.service';
         <div style="display: flex; flex-direction: column; gap: 16px; max-width: 680px;">
           <div class="form-group">
             <label>問卷名稱 <span style="color: #ef4444;">*</span></label>
-            <input type="text" class="form-control" [(ngModel)]="name" placeholder="請輸入問卷名稱" />
+            <input type="text" class="form-control" [(ngModel)]="name" (ngModelChange)="clearFieldError('name')" placeholder="請輸入問卷名稱" />
+            <div class="field-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</div>
           </div>
 
           <div class="form-group">
             <label>問卷說明 <span style="color: #ef4444;">*</span></label>
-            <textarea class="form-control" [(ngModel)]="description" placeholder="請輸入問卷詳細說明與注意事項..."></textarea>
+            <textarea class="form-control" [(ngModel)]="description" (ngModelChange)="clearFieldError('description')" placeholder="請輸入問卷詳細說明與注意事項..."></textarea>
+            <div class="field-error" *ngIf="fieldErrors['description']">{{ fieldErrors['description'] }}</div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="form-group">
               <label>開始時間 <span style="color: #ef4444;">*</span></label>
-              <input type="date" class="form-control" [(ngModel)]="startDate" />
+              <input type="date" class="form-control" [(ngModel)]="startDate" (ngModelChange)="clearFieldError('startDate')" />
+              <div class="field-error" *ngIf="fieldErrors['startDate']">{{ fieldErrors['startDate'] }}</div>
             </div>
 
             <div class="form-group">
               <label>結束時間 <span style="color: #ef4444;">*</span></label>
-              <input type="date" class="form-control" [(ngModel)]="endDate" />
+              <input type="date" class="form-control" [(ngModel)]="endDate" (ngModelChange)="clearFieldError('endDate')" />
+              <div class="field-error" *ngIf="fieldErrors['endDate']">{{ fieldErrors['endDate'] }}</div>
             </div>
           </div>
         </div>
@@ -87,11 +91,7 @@ import { AuthService } from '../../../core/services/auth.service';
                     <input type="checkbox" [checked]="selectedQuestionIndices.includes(i)" (change)="toggleSelectQuestion(i)" />
                   </td>
                   <td>{{ q.questName }}</td>
-                  <td>
-                    <span *ngIf="q.type === 'Q'">單選</span>
-                    <span *ngIf="q.type === 'M'">多選</span>
-                    <span *ngIf="q.type === 'T'">文字</span>
-                  </td>
+                  <td>{{ getTypeLabel(q.type) }}</td>
                   <td style="text-align: center;">
                     <input type="checkbox" [checked]="q.need" disabled />
                   </td>
@@ -141,7 +141,7 @@ import { AuthService } from '../../../core/services/auth.service';
             {{ i + 1 }}. {{ q.questName }}
             <span *ngIf="q.need" style="color: #ef4444; font-size: 0.85rem;">(必填)</span>
             <span style="font-weight: 400; font-size: 0.85rem; color: #64748b; margin-left: 8px;">
-              [{{ q.type === 'Q' ? '單選' : (q.type === 'M' ? '多選' : '文字') }}]
+              [{{ getTypeLabel(q.type) }}]
             </span>
           </div>
 
@@ -239,7 +239,7 @@ export class AdminEditComponent implements OnInit {
   startDate = new Date().toISOString().split('T')[0];
   endDate = new Date().toISOString().split('T')[0];
 
-  questions: QuestionSave[] = [];
+  questions: QuestionDraft[] = [];
   selectedQuestionIndices: number[] = [];
 
   // Modal State
@@ -251,13 +251,22 @@ export class AdminEditComponent implements OnInit {
   modalOptions: OptionItem[] = [];
 
   errorMessage = '';
+  fieldErrors: Record<string, string> = {};
   saving = false;
+
+  getTypeLabel = getQuestionTypeLabel;
+
+  clearFieldError(field: string): void {
+    if (this.fieldErrors[field]) {
+      delete this.fieldErrors[field];
+    }
+  }
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private adminQuizService: AdminQuizService,
-    private quizService: QuizService,
+    private memberQuizService: MemberQuizService,
     private auth: AuthService
   ) {}
 
@@ -272,26 +281,26 @@ export class AdminEditComponent implements OnInit {
 
   loadExistingQuiz(): void {
     if (!this.quizId) return;
-    this.adminQuizService.getManagedQuizDetail(this.quizId, this.auth.isAdmin).subscribe({next: res => {
-      if (res.success && res.data) {
-        const q = res.data;
-        this.name = q.name;
-        this.description = q.description;
-        this.startDate = q.startDate;
-        this.endDate = q.endDate;
-        this.questions = q.questions || [];
+    this.adminQuizService.getManagedQuizDetail(this.quizId, this.auth.isAdmin).subscribe({
+      next: res => {
+        if (res.success && res.data) {
+          const q = res.data;
+          this.name = q.name;
+          this.description = q.description;
+          this.startDate = q.startDate;
+          this.endDate = q.endDate;
+          this.questions = q.questions || [];
+        }
+      },
+      error: err => {
+        this.errorMessage = err.status === 403 ? '您沒有權限管理此問卷。' : (err.error?.message || '問卷載入失敗。');
       }
-    }, error: err => {
-      this.errorMessage = err.status === 403 ? '您沒有權限管理此問卷。' : (err.error?.message || '問卷載入失敗。');
-    }});
+    });
   }
 
   switchTab(tab: number): void {
     this.errorMessage = '';
-    if (tab === 2 && !this.validateTab1()) {
-      return;
-    }
-    if (tab === 3 && !this.validateTab1()) {
+    if ((tab === 2 || tab === 3) && !this.validateTab1()) {
       return;
     }
     this.currentTab = tab;
@@ -299,24 +308,27 @@ export class AdminEditComponent implements OnInit {
 
   validateTab1(): boolean {
     this.errorMessage = '';
-    if (!this.name.trim()) {
-      this.errorMessage = '請填寫問卷名稱！';
-      return false;
+    this.fieldErrors = {};
+
+    if (!this.name || !this.name.trim()) {
+      this.fieldErrors['name'] = '請填寫問卷名稱！';
     }
-    if (!this.description.trim()) {
-      this.errorMessage = '請填寫問卷說明！';
-      return false;
+    if (!this.description || !this.description.trim()) {
+      this.fieldErrors['description'] = '請填寫問卷說明！';
     }
     if (!this.startDate) {
-      this.errorMessage = '請選擇開始時間！';
-      return false;
+      this.fieldErrors['startDate'] = '請選擇開始時間！';
     }
     if (!this.endDate) {
-      this.errorMessage = '請選擇結束時間！';
-      return false;
+      this.fieldErrors['endDate'] = '請選擇結束時間！';
     }
-    if (this.startDate > this.endDate) {
-      this.errorMessage = '問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!';
+    if (this.startDate && this.endDate && this.startDate > this.endDate) {
+      this.fieldErrors['endDate'] = '問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!';
+    }
+
+    if (Object.keys(this.fieldErrors).length > 0) {
+      this.errorMessage = '基本設定資料有誤或不完整，請檢查並修正欄位後再繼續！';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return false;
     }
     return true;
@@ -400,7 +412,7 @@ export class AdminEditComponent implements OnInit {
       }
     }
 
-    const questionItem: QuestionSave = {
+    const questionItem: QuestionDraft = {
       questId: this.editingQuestionIndex !== null ? this.questions[this.editingQuestionIndex].questId : undefined,
       questName: this.modalQuestName.trim(),
       type: this.modalType,
@@ -464,13 +476,14 @@ export class AdminEditComponent implements OnInit {
 
     const request$ = this.auth.isAdmin
       ? this.adminQuizService.saveOrUpdateQuiz(payload)
-      : this.adminQuizService.createMemberQuiz(payload);
+      : this.memberQuizService.createMemberQuiz(payload);
+
     request$.subscribe({
       next: (res) => {
         this.saving = false;
         if (res.success) {
           alert(isPublished ? '問卷已成功儲存並發佈！' : '問卷草稿已成功儲存！');
-          this.router.navigate([this.auth.isAdmin ? '/admin' : '/member/quizzes']);
+          this.router.navigate([this.auth.managementBase]);
         } else {
           this.errorMessage = res.message || '儲存失敗！';
         }
@@ -483,6 +496,6 @@ export class AdminEditComponent implements OnInit {
   }
 
   onReturnToList(): void {
-    this.router.navigate([this.auth.isAdmin ? '/admin' : '/member/quizzes']);
+    this.router.navigate([this.auth.managementBase]);
   }
 }

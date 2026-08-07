@@ -12,6 +12,10 @@
   height: 74px;
   background: var(--ds-color-surface);
   border-bottom: var(--ds-border-subtle);
+
+  /* 加上這兩行，強制把 Header 提到最上層 */
+  position: relative;
+  z-index: 10;
 }
 .home-header__inner {
   height: 100%;
@@ -295,7 +299,7 @@
   display: inline-block;
   margin-bottom: 10px;
   color: var(--ds-color-primary);
-  font-size: 0.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: 0.13em;
 }

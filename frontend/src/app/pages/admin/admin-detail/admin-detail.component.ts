@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AdminQuizService } from '../../../core/services/admin-quiz.service';
-import { QuizDetail, QuizStatistics } from '../../../core/models/survey.model';
+import { QuestionStat, QuizDetail, QuizStatistics, canUsePieChart, getQuestionTypeLabel } from '../../../core/models/survey.model';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -10,10 +10,14 @@ import { AuthService } from '../../../core/services/auth.service';
     <div class="container" *ngIf="quiz">
       <div class="page-header">
         <div>
-          <h1 class="page-title">{{ quiz.name }} ({{ auth.isAdmin ? '後台' : '我的問卷' }} - 唯讀)</h1>
-          <p style="color: #64748b; margin-top: 4px;">在此查看問卷題目、回答與統計。</p>
+          <h1 class="page-title">📊 {{ quiz.name }} (明細與統計)</h1>
+          <p style="color: #64748b; margin-top: 4px;">本問卷題目結構已鎖定以保護填答資料，您可在下方查看完整題目、回覆與統計。</p>
         </div>
         <button class="btn btn-outline" (click)="onReturnToList()">回列表</button>
+      </div>
+
+      <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; color: #1e40af; font-weight: 500; font-size: 0.9rem;">
+        ℹ️ 提示：問卷在開放中或已結束狀態下，題目與選項結構將進行鎖定以保障數據真實性。欲建立新問卷或編輯草稿請點擊右上角「回列表」。
       </div>
 
       <!-- Header Tabs -->
@@ -34,6 +38,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <div><strong style="color: #64748b;">結束時間：</strong> {{ quiz.endDate }}</div>
           <div><strong style="color: #64748b;">發佈狀態：</strong> {{ quiz.isPublished ? '已發佈' : '未發佈' }}</div>
         </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 32px;">
+          <button class="btn btn-primary" (click)="currentTab = 'questions'">下一頁籤 (查看題目) &raquo;</button>
+        </div>
       </div>
 
       <!-- TAB: QUESTIONS -->
@@ -44,7 +51,7 @@ import { AuthService } from '../../../core/services/auth.service';
             {{ i + 1 }}. {{ q.questName }}
             <span *ngIf="q.need" style="color: #ef4444; font-size: 0.85rem;">(必填)</span>
             <span style="font-weight: 400; font-size: 0.85rem; color: #64748b; margin-left: 8px;">
-              [{{ q.type === 'Q' ? '單選' : (q.type === 'M' ? '多選' : '文字') }}]
+              [{{ getTypeLabel(q.type) }}]
             </span>
           </div>
 
@@ -56,6 +63,10 @@ import { AuthService } from '../../../core/services/auth.service';
           <div *ngIf="q.type === 'T'" style="padding-left: 12px; color: #94a3b8; font-style: italic; font-size: 0.9rem;">
             [使用者簡答輸入框]
           </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 32px;">
+          <button class="btn btn-outline" (click)="currentTab = 'info'">&laquo; 上一頁籤 (基本資料)</button>
+          <button class="btn btn-primary" (click)="currentTab = 'feedback'">下一頁籤 (問卷回饋) &raquo;</button>
         </div>
       </div>
 
@@ -88,10 +99,10 @@ import { AuthService } from '../../../core/services/auth.service';
                 </div>
               </div>
 
-              <!-- Chart View (Default Pie, Toggleable to Bar) -->
-              <app-chart-view [options]="q.options || []" [chartType]="q.chartType || 'pie'"></app-chart-view>
-              <button class="btn btn-outline toggle-chart-btn" (click)="toggleChartType(q)">
-                {{ (q.chartType || 'pie') === 'pie' ? '切換為長條圖 📊' : '切換為圓餅圖 🥧' }}
+              <app-chart-view [options]="q.options || []" [chartType]="q.chartType || 'bar'"></app-chart-view>
+              <!-- 多選題各項加總超過 100%，圓餅圖無意義，因此只有單選題提供切換 -->
+              <button class="btn btn-outline toggle-chart-btn" *ngIf="canUsePie(q.type)" (click)="toggleChartType(q)">
+                {{ q.chartType === 'pie' ? '切換為長條圖 📊' : '切換為圓餅圖 🥧' }}
               </button>
             </div>
 
@@ -121,6 +132,8 @@ export class AdminDetailComponent implements OnInit {
   stats: QuizStatistics | null = null;
 
   currentTab = 'info';
+  getTypeLabel = getQuestionTypeLabel;
+  canUsePie = canUsePieChart;
 
   constructor(
     private route: ActivatedRoute,
@@ -153,18 +166,16 @@ export class AdminDetailComponent implements OnInit {
     this.adminQuizService.getManagedStatistics(this.quizId, this.auth.isAdmin).subscribe(res => {
       if (res.success && res.data) {
         this.stats = res.data;
-        if (this.stats.questions) {
-          this.stats.questions.forEach(q => q.chartType = 'pie');
-        }
+        this.stats.questions?.forEach(q => q.chartType = canUsePieChart(q.type) ? 'pie' : 'bar');
       }
     });
   }
 
-  toggleChartType(q: any): void {
+  toggleChartType(q: QuestionStat): void {
     q.chartType = q.chartType === 'pie' ? 'bar' : 'pie';
   }
 
   onReturnToList(): void {
-    this.router.navigate([this.auth.isAdmin ? '/admin' : '/member/quizzes']);
+    this.router.navigate([this.auth.managementBase]);
   }
 }

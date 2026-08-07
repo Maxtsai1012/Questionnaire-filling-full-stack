@@ -6,12 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 public interface QuizResponseRepository extends JpaRepository<QuizResponse, Integer> {
-    boolean existsByQuizIdAndEmailIgnoreCase(Integer quizId, String email);
+    boolean existsByQuizIdAndEmail(Integer quizId, String email);
     int countByQuizId(Integer quizId);
     Page<QuizResponse> findByQuizIdOrderByIdDesc(Integer quizId, Pageable pageable);
-    List<QuizResponse> findByQuizIdOrderByIdDesc(Integer quizId);
 }

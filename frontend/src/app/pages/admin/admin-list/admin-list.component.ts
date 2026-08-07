@@ -1,8 +1,11 @@
-import { Component, OnInit } from "@angular/core";
-import { Router } from "@angular/router";
-import { AdminQuizService } from "../../../core/services/admin-quiz.service";
-import { QuizListItem } from "../../../core/models/survey.model";
-import { AuthService } from "../../../core/services/auth.service";
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
+import { AdminQuizService } from '../../../core/services/admin-quiz.service';
+import { MemberQuizService } from '../../../core/services/member-quiz.service';
+import { QuizListItem } from '../../../core/models/survey.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { createPaginationState, updatePagination, PaginationState } from '../../../core/utils/pagination.helper';
 
 @Component({
   selector: "app-admin-list",
@@ -62,6 +65,7 @@ import { AuthService } from "../../../core/services/auth.service";
       </div>
 
       <!-- Action Bar (Delete & Add) -->
+<<<<<<< HEAD
       <div
         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"
       >
@@ -71,13 +75,34 @@ import { AuthService } from "../../../core/services/auth.service";
             (click)="onDeleteSelected()"
             [disabled]="selectedIds.length === 0"
           >
+=======
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button class="btn btn-danger" (click)="askDeleteSelected()" [disabled]="selectedIds.length === 0 || deleting">
+>>>>>>> inSchool
             🗑️ 刪除勾選項 ({{ selectedIds.length }})
           </button>
+          <span *ngIf="actionMessage" [style.color]="actionFailed ? '#b91c1c' : '#15803d'" style="font-weight: 600;">
+            {{ actionMessage }}
+          </span>
         </div>
 
         <button class="btn btn-primary" (click)="onCreateNew()">
           ➕ 新增問卷
         </button>
+      </div>
+
+      <!-- 刪除確認：用頁內元件而非 window.confirm，瀏覽器封鎖對話框時才不會整個按鈕沒反應 -->
+      <div *ngIf="pendingDeleteCount > 0"
+           style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+                  background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px;">
+        <span style="color: #991b1b; font-weight: 600;">
+          確定要刪除選取的 {{ pendingDeleteCount }} 筆問卷嗎？連同題目與填答紀錄一併移除，且無法復原。
+        </span>
+        <button class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+          {{ deleting ? '刪除中…' : '確定刪除' }}
+        </button>
+        <button class="btn btn-outline" (click)="cancelDelete()" [disabled]="deleting">取消</button>
       </div>
 
       <!-- Admin Survey Table -->
@@ -112,6 +137,7 @@ import { AuthService } from "../../../core/services/auth.service";
               <td>#{{ quiz.id }}</td>
               <td>
                 <!-- Editable link if UNPUBLISHED or NOT_STARTED -->
+<<<<<<< HEAD
                 <a
                   *ngIf="quiz.canEdit"
                   [routerLink]="
@@ -134,6 +160,14 @@ import { AuthService } from "../../../core/services/auth.service";
                   style="font-weight: 600; color: #475569;"
                 >
                   {{ quiz.name }} (唯讀)
+=======
+                <a *ngIf="quiz.canEdit" [routerLink]="[auth.managementBase, quiz.id, 'edit']" style="font-weight: 600;">
+                  ✏️ {{ quiz.name }}
+                </a>
+                <!-- Read-only link if IN_PROGRESS or ENDED -->
+                <a *ngIf="!quiz.canEdit" [routerLink]="[auth.managementBase, quiz.id, 'detail']" style="font-weight: 600; color: #475569;">
+                  📊 {{ quiz.name }} <span style="font-size: 0.8rem; color: #64748b; font-weight: 400;">(查看明細與統計)</span>
+>>>>>>> inSchool
                 </a>
               </td>
               <td>
@@ -152,6 +186,7 @@ import { AuthService } from "../../../core/services/auth.service";
               <td>{{ quiz.startDate }}</td>
               <td>{{ quiz.endDate }}</td>
               <td style="text-align: center;">
+<<<<<<< HEAD
                 <a
                   *ngIf="quiz.canViewStats"
                   [routerLink]="
@@ -163,6 +198,9 @@ import { AuthService } from "../../../core/services/auth.service";
                   class="btn btn-outline"
                   style="padding: 4px 10px; font-size: 0.825rem;"
                 >
+=======
+                <a *ngIf="quiz.canViewStats" [routerLink]="[auth.managementBase, quiz.id, 'detail']" [queryParams]="{tab: 'stats'}" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.825rem;">
+>>>>>>> inSchool
                   前往
                 </a>
                 <span
@@ -184,6 +222,7 @@ import { AuthService } from "../../../core/services/auth.service";
         </table>
       </div>
 
+<<<<<<< HEAD
       <!-- Pagination -->
       <div class="pagination" *ngIf="totalPages > 1">
         <button
@@ -206,6 +245,9 @@ import { AuthService } from "../../../core/services/auth.service";
           後頁 &raquo;
         </button>
       </div>
+=======
+      <app-pagination [state]="pagination" (pageChange)="changePage($event)"></app-pagination>
+>>>>>>> inSchool
     </div>
   `,
 })
@@ -217,14 +259,28 @@ export class AdminListComponent implements OnInit {
   startDate = "";
   endDate = "";
 
+<<<<<<< HEAD
   currentPage = 0;
   pageSize = 10;
   totalPages = 0;
   pagesArray: number[] = [];
   loadError = "";
+=======
+  pagination: PaginationState = createPaginationState(10);
+  loadError = '';
+>>>>>>> inSchool
+
+  // 刪除流程狀態。刻意不用 window.confirm/alert：瀏覽器在連續彈窗後會提供
+  // 「封鎖此頁對話框」，一旦勾選，confirm() 直接回傳 false 且 alert() 無聲失效，
+  // 使用者看到的就是「按了沒反應」。
+  pendingDeleteCount = 0;
+  deleting = false;
+  actionMessage = '';
+  actionFailed = false;
 
   constructor(
     private adminQuizService: AdminQuizService,
+    private memberQuizService: MemberQuizService,
     private router: Router,
     public readonly auth: AuthService,
   ) {}
@@ -234,6 +290,7 @@ export class AdminListComponent implements OnInit {
   }
 
   loadQuizzes(): void {
+<<<<<<< HEAD
     this.loadError = "";
     const request$ = this.auth.isAdmin
       ? this.adminQuizService.getAdminQuizzes(
@@ -280,6 +337,34 @@ export class AdminListComponent implements OnInit {
           });
         }
       },
+=======
+    this.loadError = '';
+    const name = this.searchName.trim() || undefined;
+    const sDate = this.startDate || undefined;
+    const eDate = this.endDate || undefined;
+
+    const request$ = this.auth.isAdmin
+      ? this.adminQuizService.getAdminQuizzes(name, sDate, eDate, this.pagination.currentPage, this.pagination.pageSize)
+      : this.memberQuizService.getMemberQuizzes(name, sDate, eDate, this.pagination.currentPage, this.pagination.pageSize);
+
+    request$.subscribe({
+      next: res => {
+        if (res.success && res.data) {
+          this.quizzes = res.data.content;
+          updatePagination(this.pagination, res.data.totalPages);
+          this.selectedIds = [];
+        } else {
+          this.loadError = res.message || '後台問卷載入失敗！';
+        }
+      },
+      // 401 由 AuthInterceptor 統一清 session 並導向登入頁，這裡只負責顯示訊息。
+      error: err => {
+        this.quizzes = [];
+        this.loadError = err.status === 401
+          ? '登入狀態已失效，請重新登入。'
+          : (err.error?.message || '後台問卷載入失敗，請確認後端與資料庫連線。');
+      }
+>>>>>>> inSchool
     });
   }
 
@@ -288,23 +373,28 @@ export class AdminListComponent implements OnInit {
       this.loadError = "問卷結束的時間不能比開始的時間還要早，請重新選擇時間!!";
       return;
     }
-    this.currentPage = 0;
+    this.pagination.currentPage = 0;
     this.loadQuizzes();
   }
 
   onReset(): void {
+<<<<<<< HEAD
     this.searchName = "";
     this.startDate = "";
     this.endDate = "";
     this.currentPage = 0;
+=======
+    this.searchName = '';
+    this.startDate = '';
+    this.endDate = '';
+    this.pagination.currentPage = 0;
+>>>>>>> inSchool
     this.loadQuizzes();
   }
 
   changePage(page: number): void {
-    if (page >= 0 && page < this.totalPages) {
-      this.currentPage = page;
-      this.loadQuizzes();
-    }
+    this.pagination.currentPage = page;
+    this.loadQuizzes();
   }
 
   toggleSelect(id: number): void {
@@ -332,22 +422,47 @@ export class AdminListComponent implements OnInit {
   }
 
   onCreateNew(): void {
+<<<<<<< HEAD
     this.router.navigate([
       this.auth.isAdmin ? "/admin/new" : "/member/quizzes/new",
     ]);
+=======
+    this.router.navigate([this.auth.managementBase, 'new']);
+>>>>>>> inSchool
   }
 
-  onDeleteSelected(): void {
+  askDeleteSelected(): void {
     if (this.selectedIds.length === 0) return;
+<<<<<<< HEAD
     if (!confirm(`確定要刪除選取的 ${this.selectedIds.length} 筆問卷嗎？`))
       return;
+=======
+    this.actionMessage = '';
+    this.pendingDeleteCount = this.selectedIds.length;
+  }
+
+  cancelDelete(): void {
+    this.pendingDeleteCount = 0;
+  }
+
+  confirmDelete(): void {
+    if (this.deleting || this.selectedIds.length === 0) return;
+    this.deleting = true;
+>>>>>>> inSchool
 
     const request$ = this.auth.isAdmin
       ? this.adminQuizService.deleteQuizzes(this.selectedIds)
-      : this.adminQuizService.deleteMemberQuizzes(this.selectedIds);
-    request$.subscribe({
-      next: (res) => {
+      : this.memberQuizService.deleteMemberQuizzes(this.selectedIds);
+
+    request$.pipe(finalize(() => {
+      this.deleting = false;
+      this.pendingDeleteCount = 0;
+    })).subscribe({
+      next: res => {
+        this.actionFailed = !res.success;
+        this.actionMessage = res.success ? '問卷已刪除。' : (res.message || '刪除失敗！');
         if (res.success) {
+<<<<<<< HEAD
           alert("問卷刪除成功！");
           this.loadQuizzes();
         } else {
@@ -360,6 +475,15 @@ export class AdminListComponent implements OnInit {
             "刪除失敗！部分問卷可能處於開放或已結束狀態無法刪除。",
         );
       },
+=======
+          this.loadQuizzes();
+        }
+      },
+      error: err => {
+        this.actionFailed = true;
+        this.actionMessage = err.error?.message || '刪除失敗，請稍後再試。';
+      }
+>>>>>>> inSchool
     });
   }
 }

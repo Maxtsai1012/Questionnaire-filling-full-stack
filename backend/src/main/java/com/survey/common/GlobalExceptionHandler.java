@@ -1,16 +1,19 @@
 package com.survey.common;
 
 import com.survey.dto.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.security.authentication.BadCredentialsException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -53,21 +56,22 @@ public class GlobalExceptionHandler {
         return ApiResponse.error("VALIDATION_ERROR", ex.getMessage(), ex.getFieldErrors());
     }
 
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+    public ApiResponse<Void> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         return ApiResponse.error("DUPLICATE_SUBMISSION", "同一份 Email 不得重複填寫問卷！", null);
-    }
-
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiResponse<Void> handleGeneral(Exception ex) {
-        return ApiResponse.error("系統發生錯誤: " + ex.getMessage());
     }
 
     @ExceptionHandler(SecurityException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleSecurity(SecurityException ex) {
         return ApiResponse.error(ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ApiResponse<Void> handleGeneral(Exception ex) {
+        log.error("Unhandled exception occurred: ", ex);
+        return ApiResponse.error("系統發生未預期的錯誤，請稍後再試！");
     }
 }

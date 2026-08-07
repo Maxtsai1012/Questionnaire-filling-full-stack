@@ -19,7 +19,6 @@ public class QuizListDto {
     private QuizStatus status;
     private String statusLabel;
     private Boolean canEdit;
-    private Boolean canDelete;
     private Boolean canViewStats;
     private Boolean canFill;
     private Integer ownerId;

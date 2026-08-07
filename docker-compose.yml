@@ -10,7 +10,8 @@ services:
     ports:
       - "13307:3306"
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # schema 與種子資料都由後端啟動時的 Flyway 建立，不再用 init.sql 開機腳本
+      # ——那份腳本只在資料卷是空的時候跑一次，之後的 schema 變更完全沒有交付管道。
       - db_data:/var/lib/mysql
     healthcheck:
       test:
@@ -37,9 +38,13 @@ services:
     ports:
       - "8081:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: local
+      JWT_SECRET: ${JWT_SECRET:-default_dev_secret_key_at_least_32_bytes_long_for_survey_app_123456789}
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/survey_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Taipei&allowPublicKeyRetrieval=true&useSSL=false
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: rootpassword
+      # 展示用堆疊才載入 db/seed；正式部署只給 db/migration，不會有假資料
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration,classpath:db/seed
     depends_on:
       db:
         condition: service_healthy

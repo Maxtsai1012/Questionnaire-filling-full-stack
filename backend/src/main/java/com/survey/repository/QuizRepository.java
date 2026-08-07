@@ -11,19 +11,24 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.Optional;
 
+/**
+ * 三支搜尋的日期條件語意一致：「包含」——問卷的起訖日都要落在搜尋區間內
+ * （q.startDate >= 搜尋起、q.endDate <= 搜尋迄），搜尋欄位與列表的
+ * 開始／結束時間欄一一對應。單邊留白就只套用該邊的條件。
+ */
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
-    @Query("SELECT q FROM Quiz q WHERE (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
+    /** 前台列表：只看得到已發佈的問卷。 */
+    @Query("SELECT q FROM Quiz q WHERE q.isPublished = true " +
+           "AND (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
            "AND (:startDate IS NULL OR q.startDate >= :startDate) " +
            "AND (:endDate IS NULL OR q.endDate <= :endDate) " +
-           "AND (:isPublished IS NULL OR q.isPublished = :isPublished) " +
            "ORDER BY q.id DESC")
-    Page<Quiz> searchQuizzes(@Param("name") String name,
-                            @Param("startDate") LocalDate startDate,
-                            @Param("endDate") LocalDate endDate,
-                            @Param("isPublished") Boolean isPublished,
-                            Pageable pageable);
+    Page<Quiz> searchPublishedQuizzes(@Param("name") String name,
+                                      @Param("startDate") LocalDate startDate,
+                                      @Param("endDate") LocalDate endDate,
+                                      Pageable pageable);
 
     @Query("SELECT q FROM Quiz q WHERE (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
            "AND (:startDate IS NULL OR q.startDate >= :startDate) " +
@@ -44,8 +49,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
                                   @Param("startDate") LocalDate startDate,
                                   @Param("endDate") LocalDate endDate,
                                   Pageable pageable);
-
-    Optional<Quiz> findByIdAndOwnerId(Integer id, Integer ownerId);
 
     Optional<Quiz> findByIdAndIsPublishedTrue(Integer id);
 }

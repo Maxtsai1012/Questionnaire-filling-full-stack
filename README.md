@@ -20,7 +20,7 @@
 | :--- | :--- | :--- | :--- |
 | `frontend` | Angular 17.2、NgModule、TypeScript 5.3、CSS | [`frontend/`](./frontend/) | `4200` |
 | `backend` | Spring Boot 3.2.2、Java 17、Spring Data JPA | [`backend/`](./backend/) | `8080` |
-| `database` | MySQL 8.0 | [`init.sql`](./init.sql) | `3306` |
+| `database` | MySQL 8.0 | [`db/migration/`](./backend/src/main/resources/db/migration/) | `3306` |
 
 ### 1.1 專案目錄
 
@@ -29,7 +29,6 @@ Questionnaire-filling-full-stack/
 ├── frontend/   # Angular 頁面、Guard、Interceptor、Service 與 Design System
 ├── backend/    # Spring Boot Controller、Service、Repository、Security 與測試
 ├── docs/       # 需求、Migration、實作與驗證紀錄
-├── init.sql    # 空白環境首次初始化腳本
 └── docker-compose.yml
 ```
 
@@ -42,7 +41,7 @@ Copy-Item backend/src/main/resources/application-local.example.yml `
   backend/src/main/resources/application-local.yml
 ```
 
-`application-local.yml` 已由 Git 忽略，不得提交。既有資料庫只應執行 [`docs/requirements/migrations/`](./docs/requirements/migrations/) 中需要的非破壞性 Migration；**不要為了更新既有環境重跑完整 `init.sql`**，否則會刪除會員、問卷與填答資料。
+`application-local.yml` 已由 Git 忽略，不得提交。Schema 由 Flyway 管理：後端啟動時自動套用 [`db/migration/`](./backend/src/main/resources/db/migration/) 中尚未執行的 Migration。既有資料庫會先被標記為已套用 `V1` 再往後跑，不會重建資料表。`ddl-auto` 為 `validate`，Entity 與實際 Schema 不一致時啟動即失敗。
 
 `local` profile 未設定 `JWT_SECRET` 時會為每次後端程序自動產生臨時 Secret，因此可直接啟動。若希望後端重啟後既有 Token 仍有效，請提供至少 32 UTF-8 bytes 的固定本機 Secret：
 
@@ -108,12 +107,13 @@ backend/src/main/java/com/survey/
 | 開放或限制某支 API | [`SecurityConfig.java`](./backend/src/main/java/com/survey/config/SecurityConfig.java) |
 | 修改登入、註冊、登出或會員資料 | [`AuthService.java`](./backend/src/main/java/com/survey/service/AuthService.java) 與 [`AuthController.java`](./backend/src/main/java/com/survey/controller/AuthController.java) |
 | 修改公開問卷與填答流程 | [`QuizService.java`](./backend/src/main/java/com/survey/service/QuizService.java) 與 [`FrontQuizController.java`](./backend/src/main/java/com/survey/controller/FrontQuizController.java) |
-| 修改問卷建立、編輯、刪除或 Ownership | [`AdminQuizService.java`](./backend/src/main/java/com/survey/service/AdminQuizService.java) |
+| 修改問卷建立、編輯、刪除或 Ownership | [`QuizManagementService.java`](./backend/src/main/java/com/survey/service/QuizManagementService.java) |
 | 修改 MEMBER 管理 API | [`MemberQuizController.java`](./backend/src/main/java/com/survey/controller/MemberQuizController.java) |
 | 修改 ADMIN 管理 API | [`AdminQuizController.java`](./backend/src/main/java/com/survey/controller/AdminQuizController.java) |
 | 修改回答統計 | [`StatisticsService.java`](./backend/src/main/java/com/survey/service/StatisticsService.java) |
 | 修改重複填答規則 | [`SubmissionEligibilityService.java`](./backend/src/main/java/com/survey/service/SubmissionEligibilityService.java) |
-| 修改資料表初始化 | [`init.sql`](./init.sql)；既有 DB 請新增 Migration，不要重跑完整初始化 |
+| 修改資料表結構 | 於 [`db/migration/`](./backend/src/main/resources/db/migration/) 新增 `V{n}__描述.sql`，不要改既有 Migration |
+| 修改展示種子資料 | [`db/seed/V900__seed_demo_data.sql`](./backend/src/main/resources/db/seed/V900__seed_demo_data.sql)（僅 demo 堆疊載入） |
 | 修改統一錯誤格式 | [`GlobalExceptionHandler.java`](./backend/src/main/java/com/survey/common/GlobalExceptionHandler.java) |
 
 ### 2.2 問卷資料關係
@@ -333,9 +333,11 @@ npm run build
 
 ## 8. 踩過的地雷（別再踩一次）
 
-### 8.1 不要為更新既有資料庫重跑 `init.sql`
+### 8.1 不要手改既有 Migration
 
-`init.sql` 是空白環境初始化腳本，完整執行會重建 `survey_db`。既有環境只能先查 `information_schema`，再執行尚未套用的 Migration。
+`db/migration/` 下已執行過的檔案有 checksum 記錄在 `flyway_schema_history`，改動內容會讓下次啟動直接失敗。要改 Schema 一律新增 `V{n}__描述.sql`。
+
+（歷史背景：這個專案原本用根目錄的 `init.sql` 搭配 `ddl-auto: update`。`init.sql` 只在 Docker 資料卷是空的時候跑一次，之後的 Schema 變更等於沒有交付管道，才會演變成「手動比對 `information_schema` 再貼 SQL」。改用 Flyway 後這一段已不需要。）
 
 ### 8.2 不要相信前端傳來的 owner 或角色
 
@@ -363,7 +365,14 @@ Angular Guard 與隱藏按鈕只改善操作體驗，使用者仍可直接呼叫
 | [`V20260805_02__expand_password_hash_for_bcrypt.sql`](./docs/requirements/migrations/V20260805_02__expand_password_hash_for_bcrypt.sql) | 將 `password_hash` 擴充為 `VARCHAR(255)` |
 | [`V20260805_03__add_quiz_owner.sql`](./docs/requirements/migrations/V20260805_03__add_quiz_owner.sql) | 新增 `quiz.owner_id`、Index 與 `ON DELETE RESTRICT` Foreign Key |
 
-`init.sql` 已同步供全新環境使用，但不代表既有資料庫可以跳過 Migration 直接重跑初始化。
+上述三份是導入 Flyway 之前手動套用的歷史紀錄，其結果已包含在 Flyway 的 `V1__baseline_schema.sql` 中。之後的所有 Schema 變更一律走 [`db/migration/`](./backend/src/main/resources/db/migration/)：
+
+| Migration | 用途 |
+| :--- | :--- |
+| `V1__baseline_schema.sql` | 既有 Schema 基準線；既有 DB 會被標記為已套用而不重跑 |
+| `V2__normalize_email_and_constrain_type.sql` | Email 一律存小寫；`quiz_question.type` 加上 CHECK |
+| `V3__normalize_options.sql` | 選項獨立成 `quiz_option`；答案改以 `response_answer_option` 連結 |
+| `V4__drop_superseded_columns.sql` | 移除 `options` JSON 與只寫不讀的 `normalized_*` 欄位 |
 
 ---
 

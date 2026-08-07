@@ -26,17 +26,13 @@ public class QuizResponse {
     @Column(name = "user_id")
     private Integer userId;
 
+    // 姓名／電話／Email 是填答當下的快照，不隨會員之後修改資料而變動——
+    // 填答紀錄是歷史事實，不該 JOIN app_user 取代掉。
     @Column(name = "respondent_name", nullable = false, length = 100)
     private String respondentName;
 
-    @Column(name = "normalized_name", length = 100)
-    private String normalizedName;
-
     @Column(nullable = false, length = 20)
     private String phone;
-
-    @Column(name = "normalized_phone", length = 20)
-    private String normalizedPhone;
 
     @Column(nullable = false, length = 255)
     private String email;

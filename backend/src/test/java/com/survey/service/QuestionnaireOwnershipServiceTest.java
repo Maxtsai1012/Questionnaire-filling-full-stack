@@ -7,6 +7,7 @@ import com.survey.dto.QuizSaveRequestDto;
 import com.survey.entity.AppUser;
 import com.survey.entity.Quiz;
 import com.survey.entity.QuizResponse;
+import com.survey.repository.QuizOptionRepository;
 import com.survey.repository.QuizQuestionRepository;
 import com.survey.repository.QuizRepository;
 import com.survey.repository.QuizResponseRepository;
@@ -29,7 +30,9 @@ class QuestionnaireOwnershipServiceTest {
     private QuizQuestionRepository questionRepository;
     private QuizResponseRepository responseRepository;
     private ResponseAnswerRepository answerRepository;
-    private AdminQuizService service;
+    private QuizOptionRepository optionRepository;
+    private QuizManagementService service;
+    private QuizResponseService responseService;
     private AppUser memberA;
     private AppUser memberB;
     private AppUser admin;
@@ -39,8 +42,11 @@ class QuestionnaireOwnershipServiceTest {
         questionRepository = mock(QuizQuestionRepository.class);
         responseRepository = mock(QuizResponseRepository.class);
         answerRepository = mock(ResponseAnswerRepository.class);
-        service = new AdminQuizService(quizRepository, questionRepository,
-                responseRepository, answerRepository, new ObjectMapper());
+        optionRepository = mock(QuizOptionRepository.class);
+        service = new QuizManagementService(quizRepository, questionRepository, optionRepository);
+        responseService = new QuizResponseService(quizRepository, questionRepository, optionRepository,
+                responseRepository, answerRepository, service,
+                new SubmissionEligibilityService(responseRepository));
         memberA = user(1, "MEMBER");
         memberB = user(2, "MEMBER");
         admin = user(3, "ADMIN");
@@ -145,9 +151,9 @@ class QuestionnaireOwnershipServiceTest {
         when(responseRepository.findByQuizIdOrderByIdDesc(eq(10), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        assertDoesNotThrow(() -> service.getQuizResponses(10, 0, 10, memberA.getId(), false));
+        assertDoesNotThrow(() -> responseService.getQuizResponses(10, 0, 10, memberA.getId(), false));
         assertThrows(SecurityException.class,
-                () -> service.getQuizResponses(20, 0, 10, memberA.getId(), false));
+                () -> responseService.getQuizResponses(20, 0, 10, memberA.getId(), false));
         verify(responseRepository, never()).findByQuizIdOrderByIdDesc(eq(20), any(Pageable.class));
     }
 
@@ -161,8 +167,8 @@ class QuestionnaireOwnershipServiceTest {
         when(answerRepository.findByResponseId(50)).thenReturn(List.of());
 
         assertThrows(SecurityException.class,
-                () -> service.getResponseDetail(50, memberA.getId(), false));
-        assertDoesNotThrow(() -> service.getResponseDetail(50, admin.getId(), true));
+                () -> responseService.getResponseDetail(50, memberA.getId(), false));
+        assertDoesNotThrow(() -> responseService.getResponseDetail(50, admin.getId(), true));
     }
 
     private AppUser user(int id, String role) {

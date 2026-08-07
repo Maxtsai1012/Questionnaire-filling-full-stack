@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { QuizService } from '../../../core/services/quiz.service';
-import { QuizStatistics } from '../../../core/models/survey.model';
+import { QuestionStat, QuizStatistics, canUsePieChart } from '../../../core/models/survey.model';
 
 @Component({
   selector: 'app-quiz-stats',
@@ -33,11 +33,11 @@ import { QuizStatistics } from '../../../core/models/survey.model';
           </div>
 
           <!-- Chart View -->
-          <app-chart-view [options]="q.options || []" [chartType]="q.chartType || 'pie'"></app-chart-view>
+          <app-chart-view [options]="q.options || []" [chartType]="q.chartType || 'bar'"></app-chart-view>
 
-          <!-- Toggle Button -->
-          <button class="btn btn-outline toggle-chart-btn" (click)="toggleChartType(q)">
-            {{ (q.chartType || 'pie') === 'pie' ? '切換為長條圖 📊' : '切換為圓餅圖 🥧' }}
+          <!-- 多選題各項加總超過 100%，圓餅圖無意義，因此只有單選題提供切換 -->
+          <button class="btn btn-outline toggle-chart-btn" *ngIf="canUsePie(q.type)" (click)="toggleChartType(q)">
+            {{ q.chartType === 'pie' ? '切換為長條圖 📊' : '切換為圓餅圖 🥧' }}
           </button>
         </div>
 
@@ -63,6 +63,8 @@ export class QuizStatsComponent implements OnInit {
   quizId!: number;
   stats: QuizStatistics | null = null;
 
+  canUsePie = canUsePieChart;
+
   constructor(
     private route: ActivatedRoute,
     private quizService: QuizService
@@ -77,15 +79,12 @@ export class QuizStatsComponent implements OnInit {
     this.quizService.getStatistics(this.quizId).subscribe(res => {
       if (res.success && res.data) {
         this.stats = res.data;
-        // Default chartType to pie
-        if (this.stats.questions) {
-          this.stats.questions.forEach(q => q.chartType = 'pie');
-        }
+        this.stats.questions?.forEach(q => q.chartType = canUsePieChart(q.type) ? 'pie' : 'bar');
       }
     });
   }
 
-  toggleChartType(q: any): void {
+  toggleChartType(q: QuestionStat): void {
     q.chartType = q.chartType === 'pie' ? 'bar' : 'pie';
   }
 }

@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { AdminQuizService } from '../../../core/services/admin-quiz.service';
 import { QuizResponseDetail, QuizResponseItem } from '../../../core/models/survey.model';
+import { createPaginationState, updatePagination, PaginationState } from '../../../core/utils/pagination.helper';
 
 @Component({
   selector: 'app-admin-feedback',
@@ -39,14 +40,7 @@ import { QuizResponseDetail, QuizResponseItem } from '../../../core/models/surve
           </table>
         </div>
 
-        <!-- Pagination -->
-        <div class="pagination" *ngIf="totalPages > 1">
-          <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0">&laquo; 前頁</button>
-          <button *ngFor="let page of pagesArray" (click)="changePage(page)" [class.active]="currentPage === page">
-            {{ page + 1 }}
-          </button>
-          <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">後頁 &raquo;</button>
-        </div>
+        <app-pagination [state]="pagination" (pageChange)="changePage($event)"></app-pagination>
       </div>
 
       <!-- RESPONSE DETAIL READ-ONLY VIEW -->
@@ -71,7 +65,7 @@ import { QuizResponseDetail, QuizResponseItem } from '../../../core/models/surve
             <span *ngIf="item.isRequired" style="color: #ef4444; font-size: 0.85rem;">(必填)</span>
           </div>
           <div style="color: #3b82f6; font-weight: 600; padding-left: 12px; border-left: 3px solid #3b82f6;">
-            {{ formatAnswer(item.answer) }}
+            {{ item.answer }}
           </div>
         </div>
       </div>
@@ -84,11 +78,7 @@ export class AdminFeedbackComponent implements OnInit, OnChanges {
 
   responses: QuizResponseItem[] = [];
   selectedResponseDetail: QuizResponseDetail | null = null;
-
-  currentPage = 0;
-  pageSize = 10;
-  totalPages = 0;
-  pagesArray: number[] = [];
+  pagination: PaginationState = createPaginationState(10);
 
   constructor(private adminQuizService: AdminQuizService) {}
 
@@ -105,20 +95,17 @@ export class AdminFeedbackComponent implements OnInit, OnChanges {
   }
 
   loadResponses(): void {
-    this.adminQuizService.getQuizResponses(this.quizId, this.isAdmin, this.currentPage, this.pageSize).subscribe(res => {
+    this.adminQuizService.getQuizResponses(this.quizId, this.isAdmin, this.pagination.currentPage, this.pagination.pageSize).subscribe(res => {
       if (res.success && res.data) {
         this.responses = res.data.content;
-        this.totalPages = res.data.totalPages;
-        this.pagesArray = Array.from({ length: this.totalPages }, (_, i) => i);
+        updatePagination(this.pagination, res.data.totalPages);
       }
     });
   }
 
   changePage(page: number): void {
-    if (page >= 0 && page < this.totalPages) {
-      this.currentPage = page;
-      this.loadResponses();
-    }
+    this.pagination.currentPage = page;
+    this.loadResponses();
   }
 
   viewDetail(responseId: number): void {
@@ -131,10 +118,5 @@ export class AdminFeedbackComponent implements OnInit, OnChanges {
 
   backToList(): void {
     this.selectedResponseDetail = null;
-  }
-
-  formatAnswer(answer: string): string {
-    if (!answer) return '未填寫';
-    return answer.replace(/;/g, '、');
   }
 }
