@@ -54,23 +54,31 @@ export class AuthService {
     name: string,
     phone: string,
     email: string,
+    birthday: string,
     password: string,
   ): Observable<ApiResponse<AuthUser>> {
     return this.http
       .post<
         ApiResponse<AuthUser>
-      >("/api/auth/register", { name, phone, email, password })
+      >("/api/auth/register", { name, phone, email, birthday, password })
       .pipe(tap((res) => res.success && this.saveSession(res.data)));
   }
 
   updateProfile(
     name: string,
     phone: string,
-    newPassword?: string,
+    birthday: string,
   ): Observable<ApiResponse<AuthUser>> {
     return this.http
-      .put<ApiResponse<AuthUser>>("/api/auth/me", { name, phone, newPassword })
+      .put<ApiResponse<AuthUser>>("/api/auth/me", { name, phone, birthday })
       .pipe(tap((res) => res.success && this.saveSession(res.data)));
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<ApiResponse<null>> {
+    return this.http.put<ApiResponse<null>>("/api/auth/me/password", {
+      currentPassword,
+      newPassword,
+    });
   }
 
   me(): Observable<ApiResponse<AuthUser>> {
@@ -110,6 +118,7 @@ export class AuthService {
 
   clearSession(): void {
     localStorage.removeItem(this.storageKey);
+    this.clearQuestionnaireDrafts();
     this.subject.next(null);
   }
 
@@ -154,6 +163,17 @@ export class AuthService {
     this.subject.next(user);
   }
 
+  private clearQuestionnaireDrafts(): void {
+    const keys: string[] = [];
+    for (let index = 0; index < sessionStorage.length; index++) {
+      const key = sessionStorage.key(index);
+      if (key?.startsWith("quiz_draft_") || key?.startsWith("quiz_errors_")) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((key) => sessionStorage.removeItem(key));
+  }
+
   private readSessionStorage(): AuthUser | null {
     try {
       const value = JSON.parse(localStorage.getItem(this.storageKey) || "null");
@@ -161,6 +181,7 @@ export class AuthService {
         !value ||
         typeof value.token !== "string" ||
         value.token.split(".").length !== 3 ||
+        typeof value.birthday !== "string" ||
         (value.role !== "MEMBER" && value.role !== "ADMIN")
       ) {
         localStorage.removeItem(this.storageKey);

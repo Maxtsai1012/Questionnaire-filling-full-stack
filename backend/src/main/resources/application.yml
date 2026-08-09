@@ -14,6 +14,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: true
+    repair-on-migrate: true # 加入這行，啟動時自動修復 Flyway 失敗紀錄
     # 既有資料庫（由 init.sql 建立）沒有 flyway 歷史表，標記為已套用 V1 後接著跑 V2 以後；
     # 全新資料庫則從 V1 開始建。兩邊自此共用同一條 migration 線。
     baseline-on-migrate: true

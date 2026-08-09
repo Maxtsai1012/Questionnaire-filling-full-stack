@@ -10,6 +10,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -26,18 +28,23 @@ public class AuthService {
         user.setName(req.getName().trim());
         user.setEmail(email);
         user.setPhone(phone);
+        user.setBirthday(req.getBirthday());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         return issue(repository.save(user));
     }
 
     @Transactional
-    void ensureLocalTestAccount(String name, String email, String phone, String password, String role) {
+    void ensureLocalTestAccount(String name, String email, String phone, LocalDate birthday,
+                                String password, String role) {
         String normalizedEmail = email.trim().toLowerCase();
         AppUser user = repository.findByEmailIgnoreCase(normalizedEmail).orElseGet(AppUser::new);
         boolean isNew = user.getId() == null && user.getEmail() == null;
         user.setName(name);
         user.setEmail(normalizedEmail);
         user.setPhone(phone);
+        if (isNew || user.getBirthday() == null) {
+            user.setBirthday(birthday);
+        }
         user.setRole(role);
         if (isNew || !passwordEncoder.matches(password, user.getPasswordHash())) {
             user.setPasswordHash(passwordEncoder.encode(password));
@@ -67,17 +74,19 @@ public class AuthService {
         }
         user.setName(name);
         user.setPhone(phone);
-        if (req.getNewPassword() != null && !req.getNewPassword().isBlank()) {
-            repository.saveAndFlush(user);
-            if (repository.changePasswordAndIncrementTokenVersion(
-                    user.getId(), passwordEncoder.encode(req.getNewPassword())) != 1) {
-                throw new IllegalStateException("密碼更新失敗");
-            }
-            AppUser updated = repository.findById(user.getId())
-                    .orElseThrow(() -> new IllegalStateException("會員不存在"));
-            return issue(updated);
-        }
+        user.setBirthday(req.getBirthday());
         return issue(repository.save(user));
+    }
+
+    @Transactional
+    public void changePassword(AppUser user, AuthDtos.ChangePasswordRequest req) {
+        if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("目前密碼錯誤");
+        }
+        if (repository.changePasswordAndIncrementTokenVersion(
+                user.getId(), passwordEncoder.encode(req.getNewPassword())) != 1) {
+            throw new IllegalStateException("密碼更新失敗");
+        }
     }
 
     public AuthDtos.AuthResponse summarize(AppUser user, String token) {
@@ -122,6 +131,7 @@ public class AuthService {
         out.setName(user.getName());
         out.setEmail(user.getEmail());
         out.setPhone(user.getPhone());
+        out.setBirthday(user.getBirthday());
         out.setRole(user.getRole());
         return out;
     }

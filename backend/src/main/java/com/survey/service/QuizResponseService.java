@@ -3,6 +3,7 @@ package com.survey.service;
 import com.survey.common.RequestValidationException;
 import com.survey.common.ResourceNotFoundException;
 import com.survey.dto.*;
+import com.survey.entity.AppUser;
 import com.survey.entity.Quiz;
 import com.survey.entity.QuizOption;
 import com.survey.entity.QuizQuestion;
@@ -17,12 +18,13 @@ import com.survey.repository.QuizResponseRepository;
 import com.survey.repository.ResponseAnswerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,11 +43,12 @@ public class QuizResponseService {
     private final SubmissionEligibilityService submissionEligibilityService;
 
     @Transactional
-    public Integer submitResponse(ResponseSubmitDto req, Integer userId) {
+    public Integer submitResponse(ResponseSubmitDto req, AppUser user) {
+        Integer userId = user == null ? null : user.getId();
         Quiz quiz = quizRepository.findById(req.getQuizId())
                 .orElseThrow(() -> new IllegalArgumentException("問卷不存在"));
 
-        QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+        QuizStatus status = quizManagementService.effectiveStatus(quiz);
         if (status != QuizStatus.IN_PROGRESS) {
             throw new IllegalStateException("此問卷目前非開放填寫狀態 (當前狀態: " + status.getLabel() + ")");
         }
@@ -56,27 +59,65 @@ public class QuizResponseService {
         Map<Integer, AnswerSubmitDto> submitted = indexSubmitted(req);
 
         validateAnswers(questions, optionsByQuestion, submitted);
-        submissionEligibilityService.ensureNotDuplicate(req.getQuizId(), req.getEmail());
-
-        QuizResponse response = new QuizResponse();
-        response.setQuizId(req.getQuizId());
+        QuizResponse response;
+        boolean updatingExistingMemberResponse = false;
+        if (userId == null) {
+            submissionEligibilityService.ensureNotDuplicate(req.getQuizId(), req.getEmail());
+            response = new QuizResponse();
+            response.setQuizId(req.getQuizId());
+        } else {
+            Optional<QuizResponse> existing = responseRepository.findByQuizIdAndUserId(req.getQuizId(), userId);
+            response = existing.orElseGet(() -> {
+                QuizResponse created = new QuizResponse();
+                created.setQuizId(req.getQuizId());
+                created.setUserId(userId);
+                return created;
+            });
+            updatingExistingMemberResponse = existing.isPresent();
+        }
         submissionEligibilityService.applyIdentity(response, userId);
         response.setRespondentName(req.getRespondentName());
         response.setPhone(req.getPhone());
         response.setEmail(req.getEmail());
-        response.setAge(req.getAge());
+        response.setAge(user == null
+                ? req.getAge()
+                : calculateAge(user.getBirthday(), LocalDate.now()));
         QuizResponse savedResponse = responseRepository.save(response);
+
+        if (updatingExistingMemberResponse) {
+            List<ResponseAnswer> previousAnswers = answerRepository.findByResponseId(savedResponse.getId());
+            if (!previousAnswers.isEmpty()) {
+                answerRepository.deleteAll(previousAnswers);
+                answerRepository.flush();
+            }
+        }
 
         answerRepository.saveAll(buildAnswers(savedResponse.getId(), questions, optionsByQuestion, submitted));
         return savedResponse.getId();
     }
 
+    static int calculateAge(LocalDate birthday, LocalDate currentDate) {
+        if (birthday == null) {
+            throw new IllegalStateException("會員生日資料不存在");
+        }
+        if (birthday.isAfter(currentDate)) {
+            throw new IllegalArgumentException("會員生日不能晚於今天");
+        }
+        return Period.between(birthday, currentDate).getYears();
+    }
+
     @Transactional(readOnly = true)
     public Page<QuizResponseListDto> getQuizResponses(Integer quizId, int page, int size,
-                                                       Integer actorId, boolean admin) {
+                                                       Integer actorId, boolean admin,
+                                                       String respondentName, String sortBy,
+                                                       String sortDirection) {
         quizManagementService.resolveManageableQuiz(quizId, actorId, admin);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResponse> responses = responseRepository.findByQuizIdOrderByIdDesc(quizId, pageable);
+        Pageable pageable = ListPageableFactory.responses(page, size, sortBy, sortDirection);
+        String normalizedName = respondentName == null || respondentName.isBlank()
+                ? null
+                : respondentName.trim();
+        Page<QuizResponse> responses = responseRepository.searchByQuizId(
+                quizId, normalizedName, pageable);
 
         return responses.map(res -> QuizResponseListDto.builder()
                 .id(res.getId())
@@ -92,10 +133,23 @@ public class QuizResponseService {
 
         Quiz quiz = quizManagementService.resolveManageableQuiz(response.getQuizId(), actorId, admin);
 
+        return buildResponseDetail(response, quiz, false);
+    }
+
+    @Transactional(readOnly = true)
+    public QuizResponseDetailDto getMyResponse(Integer quizId, Integer userId) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("問卷不存在"));
+        QuizResponse response = responseRepository.findByQuizIdAndUserId(quizId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("尚未填寫此問卷"));
+        return buildResponseDetail(response, quiz, true);
+    }
+
+    private QuizResponseDetailDto buildResponseDetail(QuizResponse response, Quiz quiz, boolean forEditing) {
         List<QuizQuestion> questions = questionRepository.findByQuizIdOrderBySortOrderAscIdAsc(quiz.getId());
-        Map<Integer, ResponseAnswer> answersByQuestion = answerRepository.findByResponseId(responseId).stream()
+        Map<Integer, ResponseAnswer> answersByQuestion = answerRepository.findByResponseId(response.getId()).stream()
                 .collect(Collectors.toMap(ResponseAnswer::getQuestionId, a -> a, (a, b) -> a));
-        Map<Integer, String> labelById = loadLabelsById(questions);
+        Map<Integer, QuizOption> optionById = loadOptionsById(questions);
 
         List<QuizResponseDetailDto.QuestionAnswerItemDto> answerItems = new ArrayList<>();
         for (QuizQuestion q : questions) {
@@ -104,7 +158,10 @@ public class QuizResponseService {
                     .title(q.getTitle())
                     .type(q.getType())
                     .isRequired(q.getIsRequired())
-                    .answer(displayAnswer(q, answersByQuestion.get(q.getId()), labelById))
+                    .answer(forEditing
+                            ? editableAnswer(q, answersByQuestion.get(q.getId()), optionById)
+                            : displayAnswer(q, answersByQuestion.get(q.getId()), optionById))
+                    .optionCodes(selectedOptionCodes(answersByQuestion.get(q.getId()), optionById))
                     .build());
         }
 
@@ -124,11 +181,23 @@ public class QuizResponseService {
                 .build();
     }
 
+    private String editableAnswer(QuizQuestion question,
+                                  ResponseAnswer answer,
+                                  Map<Integer, QuizOption> optionById) {
+        if (answer == null) {
+            return "";
+        }
+        if (QuestionType.fromCode(question.getType()) == QuestionType.T) {
+            return answer.getAnswer() == null ? "" : answer.getAnswer();
+        }
+        return displayAnswer(question, answer, optionById);
+    }
+
     /**
      * 顯示用答案：選擇題一律由目前的選項 label 重建，因此管理者改了選項文字後
      * 明細頁會跟著更新；response_answer.answer 的文字快照只在選項已被刪除時才派上用場。
      */
-    private String displayAnswer(QuizQuestion question, ResponseAnswer answer, Map<Integer, String> labelById) {
+    private String displayAnswer(QuizQuestion question, ResponseAnswer answer, Map<Integer, QuizOption> optionById) {
         if (answer == null) {
             return "無";
         }
@@ -136,14 +205,27 @@ public class QuizResponseService {
             return answer.getAnswer() == null || answer.getAnswer().isBlank() ? "無" : answer.getAnswer();
         }
         String labels = answer.getSelectedOptionIds().stream()
-                .map(labelById::get)
+                .map(optionById::get)
                 .filter(Objects::nonNull)
+                .map(QuizOption::getLabel)
                 .collect(Collectors.joining(DISPLAY_SEPARATOR));
         if (!labels.isEmpty()) {
             return labels;
         }
         // 選項已不存在，退回填答當下的文字快照
         return answer.getAnswer() == null || answer.getAnswer().isBlank() ? "無" : answer.getAnswer();
+    }
+
+    private List<Integer> selectedOptionCodes(ResponseAnswer answer, Map<Integer, QuizOption> optionById) {
+        if (answer == null) {
+            return List.of();
+        }
+        return answer.getSelectedOptionIds().stream()
+                .map(optionById::get)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(QuizOption::getSortOrder).thenComparing(QuizOption::getId))
+                .map(QuizOption::getCode)
+                .toList();
     }
 
     private Map<Integer, AnswerSubmitDto> indexSubmitted(ResponseSubmitDto req) {
@@ -166,13 +248,13 @@ public class QuizResponseService {
                         Collectors.toMap(QuizOption::getCode, o -> o, (a, b) -> a, LinkedHashMap::new)));
     }
 
-    private Map<Integer, String> loadLabelsById(List<QuizQuestion> questions) {
+    private Map<Integer, QuizOption> loadOptionsById(List<QuizQuestion> questions) {
         if (questions.isEmpty()) {
             return Collections.emptyMap();
         }
         List<Integer> ids = questions.stream().map(QuizQuestion::getId).collect(Collectors.toList());
         return optionRepository.findByQuestionIdInOrderBySortOrderAscIdAsc(ids).stream()
-                .collect(Collectors.toMap(QuizOption::getId, QuizOption::getLabel, (a, b) -> a));
+                .collect(Collectors.toMap(QuizOption::getId, option -> option, (a, b) -> a));
     }
 
     private void validateAnswers(List<QuizQuestion> questions,

@@ -46,18 +46,23 @@ import { AuthService } from "../../core/services/auth.service";
             <label for="login-password"
               >密碼 <span aria-hidden="true">*</span></label
             >
-            <input
-              id="login-password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              [(ngModel)]="password"
-              (ngModelChange)="clearFieldError('password')"
-              [attr.aria-invalid]="!!errors['password']"
-              [attr.aria-describedby]="
-                errors['password'] ? 'login-password-error' : null
-              "
-            />
+            <div class="password-control">
+              <input
+                id="login-password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                [(ngModel)]="password"
+                (ngModelChange)="clearFieldError('password')"
+                [attr.aria-invalid]="!!errors['password']"
+                [attr.aria-describedby]="errors['password'] ? 'login-password-error' : null"
+              />
+              <button class="password-toggle" type="button" (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? '隱藏密碼' : '顯示密碼'" [attr.aria-pressed]="showPassword">
+                <svg *ngIf="showPassword" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg *ngIf="!showPassword" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a16 16 0 0 1-2.1 3.2"></path><path d="M6.6 6.6C3.5 8.5 2 12 2 12s3.5 8 10 8a10.7 10.7 0 0 0 4.1-.8"></path></svg>
+              </button>
+            </div>
             <p
               class="account-error"
               id="login-password-error"
@@ -67,6 +72,13 @@ import { AuthService } from "../../core/services/auth.service";
             </p>
           </div>
 
+          <div
+            class="account-alert account-alert--success"
+            role="status"
+            *ngIf="successMessage"
+          >
+            {{ successMessage }}
+          </div>
           <div
             class="account-alert account-alert--error"
             role="alert"
@@ -104,6 +116,8 @@ export class LoginComponent implements OnInit {
   submitting = false;
   serverError = "";
   errors: Record<string, string> = {};
+  showPassword = false;
+  successMessage = "";
 
   constructor(
     private auth: AuthService,
@@ -114,6 +128,10 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     if (this.auth.user) {
       this.router.navigate([this.auth.isAdmin ? "/admin" : "/quiz"]);
+      return;
+    }
+    if (this.route.snapshot.queryParamMap.get("passwordChanged") === "1") {
+      this.successMessage = "密碼修改成功，請重新登入";
     }
   }
 

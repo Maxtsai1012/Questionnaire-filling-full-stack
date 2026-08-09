@@ -9,7 +9,8 @@ import {
   QuizResponseDetail,
   QuizResponseItem,
   QuizSaveRequest,
-  QuizStatistics
+  QuizStatistics,
+  QuizStatusType
 } from '../models/survey.model';
 
 @Injectable({
@@ -20,10 +21,13 @@ export class AdminQuizService {
 
   constructor(private http: HttpClient) {}
 
-  getAdminQuizzes(name?: string, startDate?: string, endDate?: string, page = 0, size = 10): Observable<ApiResponse<PageResponse<QuizListItem>>> {
+  getAdminQuizzes(name?: string, startDate?: string, endDate?: string, page = 0,
+                  size = 10, sortBy = 'id', sortDirection = 'desc'): Observable<ApiResponse<PageResponse<QuizListItem>>> {
     let params = new HttpParams()
       .set('page', page.toString())
-      .set('size', size.toString());
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDirection', sortDirection);
 
     if (name) params = params.set('name', name);
     if (startDate) params = params.set('startDate', startDate);
@@ -40,15 +44,23 @@ export class AdminQuizService {
     return this.http.post<ApiResponse<void>>(`${this.adminUrl}/delete`, ids);
   }
 
+  updateStatus(id: number, status: QuizStatusType): Observable<ApiResponse<QuizListItem>> {
+    return this.http.put<ApiResponse<QuizListItem>>(`${this.adminUrl}/${id}/status`, { status });
+  }
+
   getManagedQuizDetail(id: number, isAdmin: boolean): Observable<ApiResponse<QuizDetail>> {
     const base = this.resolveBaseUrl(isAdmin);
     return this.http.get<ApiResponse<QuizDetail>>(`${base}/${id}`);
   }
 
-  getQuizResponses(quizId: number, isAdmin: boolean, page = 0, size = 10): Observable<ApiResponse<PageResponse<QuizResponseItem>>> {
+  getQuizResponses(quizId: number, isAdmin: boolean, page = 0, size = 10,
+                   respondentName?: string, sortBy = 'id', sortDirection = 'desc'): Observable<ApiResponse<PageResponse<QuizResponseItem>>> {
     const params = new HttpParams()
       .set('page', page.toString())
-      .set('size', size.toString());
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDirection', sortDirection)
+      .set('respondentName', respondentName || '');
     const base = this.resolveBaseUrl(isAdmin);
     return this.http.get<ApiResponse<PageResponse<QuizResponseItem>>>(`${base}/${quizId}/responses`, { params });
   }

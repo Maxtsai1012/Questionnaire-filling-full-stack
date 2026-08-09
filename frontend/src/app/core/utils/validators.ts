@@ -9,6 +9,8 @@ export const PATTERNS = {
   PHONE: /^09\d{8}$/,
   /** Standard email address pattern */
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  /** New passwords: at least 8 characters with at least one ASCII letter and one digit. */
+  PASSWORD: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
 } as const;
 
 /**

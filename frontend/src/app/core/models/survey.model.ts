@@ -30,6 +30,7 @@ export interface AuthUser {
   name: string;
   email: string;
   phone: string;
+  birthday: string;
   role: 'MEMBER' | 'ADMIN';
 }
 
@@ -58,6 +59,7 @@ export interface QuizListItem {
   startDate: string;
   endDate: string;
   isPublished: boolean;
+  adminStatusOverride?: QuizStatusType | null;
   status: QuizStatusType;
   statusLabel: string;
   canEdit?: boolean;
@@ -65,6 +67,7 @@ export interface QuizListItem {
   canFill?: boolean;
   ownerId?: number | null;
   ownerName?: string | null;
+  responseCount: number;
 }
 
 export interface QuizDetail {
@@ -74,6 +77,7 @@ export interface QuizDetail {
   startDate: string;
   endDate: string;
   isPublished: boolean;
+  adminStatusOverride?: QuizStatusType | null;
   status: QuizStatusType;
   statusLabel: string;
   questions: Question[];
@@ -101,7 +105,7 @@ export interface ResponseSubmit {
   respondentName: string;
   phone: string;
   email: string;
-  age?: number;
+  age: number;
   answers: AnswerSubmit[];
 }
 
@@ -124,7 +128,6 @@ export interface QuestionStat {
   totalAnswers: number;
   options?: OptionStat[];
   textAnswers?: TextAnswer[];
-  chartType?: 'pie' | 'bar'; // Local toggle state
 }
 
 export interface QuizStatistics {
@@ -147,6 +150,7 @@ export interface QuestionAnswerDetail {
   type: QuestionType;
   isRequired: boolean;
   answer: string;
+  optionCodes: number[];
 }
 
 export interface QuizResponseDetail {

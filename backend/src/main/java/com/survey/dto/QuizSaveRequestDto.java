@@ -1,5 +1,6 @@
 package com.survey.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -27,5 +28,5 @@ public class QuizSaveRequestDto {
 
     private Boolean isPublished = false;
 
-    private List<QuestionSaveDto> questions;
+    private List<@Valid QuestionSaveDto> questions;
 }

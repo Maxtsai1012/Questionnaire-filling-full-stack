@@ -8,6 +8,9 @@ import {
   PaginationState,
 } from "../../../core/utils/pagination.helper";
 
+type QuizSortField = "id" | "name" | "status" | "startDate" | "endDate";
+type SortDirection = "asc" | "desc";
+
 @Component({
   selector: "app-quiz-list",
   template: `
@@ -63,11 +66,60 @@ import {
         <table class="table">
           <thead>
             <tr>
-              <th style="width: 80px;">編號</th>
-              <th>名稱</th>
-              <th style="width: 120px;">狀態</th>
-              <th style="width: 130px;">開始時間</th>
-              <th style="width: 130px;">結束時間</th>
+              <th style="width: 80px;" [attr.aria-sort]="ariaSort('id')">
+                <button
+                  type="button"
+                  class="sortable-header-button"
+                  (click)="sortByColumn('id')"
+                >
+                  編號 <span aria-hidden="true">{{ sortIndicator("id") }}</span>
+                </button>
+              </th>
+              <th [attr.aria-sort]="ariaSort('name')">
+                <button
+                  type="button"
+                  class="sortable-header-button"
+                  (click)="sortByColumn('name')"
+                >
+                  名稱
+                  <span aria-hidden="true">{{ sortIndicator("name") }}</span>
+                </button>
+              </th>
+              <th style="width: 120px;" [attr.aria-sort]="ariaSort('status')">
+                <button
+                  type="button"
+                  class="sortable-header-button"
+                  (click)="sortByColumn('status')"
+                >
+                  狀態
+                  <span aria-hidden="true">{{ sortIndicator("status") }}</span>
+                </button>
+              </th>
+              <th
+                style="width: 140px;"
+                [attr.aria-sort]="ariaSort('startDate')"
+              >
+                <button
+                  type="button"
+                  class="sortable-header-button"
+                  (click)="sortByColumn('startDate')"
+                >
+                  開始時間
+                  <span aria-hidden="true">{{
+                    sortIndicator("startDate")
+                  }}</span>
+                </button>
+              </th>
+              <th style="width: 140px;" [attr.aria-sort]="ariaSort('endDate')">
+                <button
+                  type="button"
+                  class="sortable-header-button"
+                  (click)="sortByColumn('endDate')"
+                >
+                  結束時間
+                  <span aria-hidden="true">{{ sortIndicator("endDate") }}</span>
+                </button>
+              </th>
               <th style="width: 100px; text-align: center;">結果</th>
             </tr>
           </thead>
@@ -82,7 +134,7 @@ import {
                 >
                   {{ quiz.name }}
                 </a>
-                <span *ngIf="!quiz.canFill" style="color: #64748b;">
+                <span *ngIf="!quiz.canFill" style="color: var(--text-muted);">
                   {{ quiz.name }}
                 </span>
               </td>
@@ -111,7 +163,7 @@ import {
                 </a>
                 <span
                   *ngIf="!quiz.canViewStats"
-                  style="color: #cbd5e1; font-size: 0.85rem;"
+                  style="color: var(--teal-200); font-size: 0.85rem;"
                   >-</span
                 >
               </td>
@@ -119,9 +171,16 @@ import {
             <tr *ngIf="quizzes.length === 0">
               <td
                 colspan="6"
-                style="text-align: center; color: #94a3b8; padding: 32px;"
+                style="text-align: center; color: var(--text-light); padding: 32px;"
               >
-                目前沒有符合條件的問卷資料
+                <div class="empty-state-visual">
+                  <img
+                    src="assets/illustrations/search-engine-1-36.png"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span>目前沒有符合條件的問卷資料</span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -140,6 +199,8 @@ export class QuizListComponent implements OnInit {
   searchName = "";
   startDate = "";
   endDate = "";
+  sortBy: QuizSortField = "id";
+  sortDirection: SortDirection = "desc";
 
   pagination: PaginationState = createPaginationState(10);
 
@@ -164,6 +225,8 @@ export class QuizListComponent implements OnInit {
         this.endDate || undefined,
         this.pagination.currentPage,
         this.pagination.pageSize,
+        this.sortBy,
+        this.sortDirection,
       )
       .subscribe((res) => {
         if (res.success && res.data) {
@@ -193,5 +256,26 @@ export class QuizListComponent implements OnInit {
   changePage(page: number): void {
     this.pagination.currentPage = page;
     this.loadQuizzes();
+  }
+
+  sortByColumn(field: QuizSortField): void {
+    if (this.sortBy === field) {
+      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
+    } else {
+      this.sortBy = field;
+      this.sortDirection = "asc";
+    }
+    this.pagination.currentPage = 0;
+    this.loadQuizzes();
+  }
+
+  sortIndicator(field: QuizSortField): string {
+    if (this.sortBy !== field) return "↕";
+    return this.sortDirection === "asc" ? "↑" : "↓";
+  }
+
+  ariaSort(field: QuizSortField): "ascending" | "descending" | "none" {
+    if (this.sortBy !== field) return "none";
+    return this.sortDirection === "asc" ? "ascending" : "descending";
   }
 }

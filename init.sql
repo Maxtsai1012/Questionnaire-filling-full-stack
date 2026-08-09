@@ -17,6 +17,7 @@ CREATE TABLE app_user (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(20) NOT NULL,
+    birthday DATE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     token_version INT NOT NULL DEFAULT 0,
     role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',

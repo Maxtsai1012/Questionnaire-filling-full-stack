@@ -20,55 +20,55 @@ import {
             <h1 class="page-title" style="margin-bottom: 8px;">
               {{ quiz.name }} (資料確認)
             </h1>
-            <p style="color: #64748b;">{{ quiz.description }}</p>
+            <p style="color: var(--text-muted);">{{ quiz.description }}</p>
           </div>
           <div
-            style="background: #fef3c7; color: #d97706; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;"
+            style="background: color-mix(in srgb, var(--warning) 12%, white); color: var(--warning); padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;"
           >
             唯讀預覽模式
           </div>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <hr style="border: 0; border-top: 1px solid var(--primary); margin: 20px 0;" />
 
         <!-- User Information Review -->
-        <h3 style="font-size: 1.1rem; margin-bottom: 16px; color: #1e293b;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 16px; color: var(--teal-900);">
           填答基本資料
         </h3>
         <div
-          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 8px;"
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; background: var(--teal-50); padding: 16px; border-radius: 8px;"
         >
           <div>
-            <strong style="color: #64748b;">姓名：</strong>
+            <strong style="color: var(--text-muted);">姓名：</strong>
             {{ draftData.respondentName }}
           </div>
           <div>
-            <strong style="color: #64748b;">手機：</strong>
+            <strong style="color: var(--text-muted);">手機：</strong>
             {{ draftData.phone }}
           </div>
           <div>
-            <strong style="color: #64748b;">E-mail：</strong>
+            <strong style="color: var(--text-muted);">E-mail：</strong>
             {{ draftData.email }}
           </div>
           <div>
-            <strong style="color: #64748b;">年齡：</strong>
-            {{ draftData.age || "未填寫" }}
+            <strong style="color: var(--text-muted);">年齡：</strong>
+            {{ draftData.age }}
           </div>
         </div>
 
         <!-- Answers Review -->
-        <h3 style="font-size: 1.1rem; margin-bottom: 16px; color: #1e293b;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 16px; color: var(--teal-900);">
           填答內容確認
         </h3>
         <div
           *ngFor="let q of quiz.questions; let i = index"
-          style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;"
+          style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--primary);"
         >
-          <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+          <div style="font-weight: 700; color: var(--teal-950); margin-bottom: 6px;">
             {{ i + 1 }}. {{ q.questName }}
           </div>
           <div
-            style="color: #3b82f6; font-weight: 600; padding-left: 12px; border-left: 3px solid #3b82f6;"
+            style="color: var(--teal-700); font-weight: 600; padding-left: 12px; border-left: 3px solid var(--teal-600);"
           >
             {{ getAnswerDisplay(q) }}
           </div>
@@ -76,7 +76,7 @@ import {
 
         <div
           *ngIf="errorMessage"
-          style="color: #ef4444; font-weight: 600; margin-bottom: 16px; background: #fee2e2; padding: 10px 16px; border-radius: 6px;"
+          style="color: var(--danger); font-weight: 600; margin-bottom: 16px; background: color-mix(in srgb, var(--danger) 10%, white); padding: 10px 16px; border-radius: 6px;"
         >
           {{ errorMessage }}
         </div>
@@ -91,7 +91,7 @@ import {
             (click)="onConfirmSubmit()"
             [disabled]="submitting"
           >
-            {{ submitting ? "提交中..." : "確認送出" }}
+            {{ submitting ? "處理中..." : (isUpdateMode ? "儲存修改" : "確認送出") }}
           </button>
         </div>
       </div>
@@ -105,6 +105,7 @@ export class QuizConfirmComponent implements OnInit {
 
   submitting = false;
   errorMessage = "";
+  isUpdateMode = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -115,6 +116,7 @@ export class QuizConfirmComponent implements OnInit {
 
   ngOnInit(): void {
     this.quizId = +this.route.snapshot.paramMap.get("id")!;
+    this.isUpdateMode = this.route.snapshot.queryParamMap.get("mode") === "update";
     this.draftData = this.sessionStorageService.getQuizDraft(this.quizId);
 
     if (!this.draftData) {
@@ -158,7 +160,7 @@ export class QuizConfirmComponent implements OnInit {
       next: (res) => {
         this.submitting = false;
         if (res.success) {
-          alert("問卷送出成功！謝謝您的填寫。");
+          alert(this.isUpdateMode ? "問卷修改已儲存。" : "問卷送出成功！謝謝您的填寫。");
           this.sessionStorageService.clearQuizDraft(this.quizId);
           this.router.navigate(["/quiz"]);
         } else {

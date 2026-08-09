@@ -5,8 +5,8 @@ import java.time.LocalDate;
 public enum QuizStatus {
     UNPUBLISHED("未發佈"),
     NOT_STARTED("尚未開始"),
-    IN_PROGRESS("開放中"),
-    ENDED("已關閉");
+    IN_PROGRESS("進行中"),
+    ENDED("已結束");
 
     private final String label;
 
@@ -30,5 +30,18 @@ public enum QuizStatus {
         } else {
             return ENDED;
         }
+    }
+
+    /**
+     * ADMIN 手動狀態優先；未設定時才依發布旗標與日期推算。
+     * 所有列表、明細、填答與編輯鎖定都必須走這個入口。
+     */
+    public static QuizStatus effectiveStatus(QuizStatus adminOverride,
+                                             Boolean isPublished,
+                                             LocalDate startDate,
+                                             LocalDate endDate) {
+        return adminOverride != null
+                ? adminOverride
+                : computeStatus(isPublished, startDate, endDate);
     }
 }

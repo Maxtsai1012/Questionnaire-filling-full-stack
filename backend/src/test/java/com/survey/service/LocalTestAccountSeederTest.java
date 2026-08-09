@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Profile;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +82,17 @@ class LocalTestAccountSeederTest {
     }
 
     @Test
+    void repeatedRunDoesNotOverwriteUpdatedBirthday() throws Exception {
+        seeder.run(null);
+        AppUser member = storedUsers.get("user@example.com");
+        member.setBirthday(LocalDate.of(1990, 5, 20));
+
+        seeder.run(null);
+
+        assertEquals(LocalDate.of(1990, 5, 20), member.getBirthday());
+    }
+
+    @Test
     void isRestrictedToLocalProfile() {
         Profile profile = LocalTestAccountSeeder.class.getAnnotation(Profile.class);
 
@@ -131,6 +143,7 @@ class LocalTestAccountSeederTest {
         AppUser user = storedUsers.get(email);
         assertNotNull(user);
         assertEquals(role, user.getRole());
+        assertEquals(LocalDate.of(2022, 10, 28), user.getBirthday());
         assertTrue(user.getPasswordHash().startsWith("{bcrypt}"));
         assertTrue(passwordEncoder.matches(plainPassword, user.getPasswordHash()));
         assertNotEquals(plainPassword, user.getPasswordHash());

@@ -23,8 +23,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
     @Query("SELECT q FROM Quiz q WHERE q.isPublished = true " +
            "AND (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
            "AND (:startDate IS NULL OR q.startDate >= :startDate) " +
-           "AND (:endDate IS NULL OR q.endDate <= :endDate) " +
-           "ORDER BY q.id DESC")
+           "AND (:endDate IS NULL OR q.endDate <= :endDate)")
     Page<Quiz> searchPublishedQuizzes(@Param("name") String name,
                                       @Param("startDate") LocalDate startDate,
                                       @Param("endDate") LocalDate endDate,
@@ -32,8 +31,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     @Query("SELECT q FROM Quiz q WHERE (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
            "AND (:startDate IS NULL OR q.startDate >= :startDate) " +
-           "AND (:endDate IS NULL OR q.endDate <= :endDate) " +
-           "ORDER BY q.id DESC")
+           "AND (:endDate IS NULL OR q.endDate <= :endDate)")
     Page<Quiz> searchAdminQuizzes(@Param("name") String name,
                                  @Param("startDate") LocalDate startDate,
                                  @Param("endDate") LocalDate endDate,
@@ -42,8 +40,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
     @Query("SELECT q FROM Quiz q WHERE q.owner.id = :ownerId " +
            "AND (:name IS NULL OR q.name LIKE CONCAT('%', :name, '%')) " +
            "AND (:startDate IS NULL OR q.startDate >= :startDate) " +
-           "AND (:endDate IS NULL OR q.endDate <= :endDate) " +
-           "ORDER BY q.id DESC")
+           "AND (:endDate IS NULL OR q.endDate <= :endDate)")
     Page<Quiz> searchOwnedQuizzes(@Param("ownerId") Integer ownerId,
                                   @Param("name") String name,
                                   @Param("startDate") LocalDate startDate,

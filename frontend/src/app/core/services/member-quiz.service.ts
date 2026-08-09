@@ -11,8 +11,13 @@ export class MemberQuizService {
 
   constructor(private http: HttpClient) {}
 
-  getMemberQuizzes(name?: string, startDate?: string, endDate?: string, page = 0, size = 10): Observable<ApiResponse<PageResponse<QuizListItem>>> {
-    let params = new HttpParams().set('page', page.toString()).set('size', size.toString());
+  getMemberQuizzes(name?: string, startDate?: string, endDate?: string, page = 0,
+                   size = 10, sortBy = 'id', sortDirection = 'desc'): Observable<ApiResponse<PageResponse<QuizListItem>>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDirection', sortDirection);
     if (name) params = params.set('name', name);
     if (startDate) params = params.set('startDate', startDate);
     if (endDate) params = params.set('endDate', endDate);

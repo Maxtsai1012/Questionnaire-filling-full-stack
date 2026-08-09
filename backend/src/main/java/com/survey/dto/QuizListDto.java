@@ -16,6 +16,7 @@ public class QuizListDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isPublished;
+    private QuizStatus adminStatusOverride;
     private QuizStatus status;
     private String statusLabel;
     private Boolean canEdit;
@@ -23,4 +24,5 @@ public class QuizListDto {
     private Boolean canFill;
     private Integer ownerId;
     private String ownerName;
+    private Long responseCount;
 }

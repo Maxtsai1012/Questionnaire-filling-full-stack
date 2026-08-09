@@ -16,11 +16,11 @@
 
 前端使用 Angular，後端使用 Spring Boot REST API，資料儲存在 MySQL：
 
-| 服務 | 技術 | 位置 | 預設埠 |
-| :--- | :--- | :--- | :--- |
-| `frontend` | Angular 17.2、NgModule、TypeScript 5.3、CSS | [`frontend/`](./frontend/) | `4200` |
-| `backend` | Spring Boot 3.2.2、Java 17、Spring Data JPA | [`backend/`](./backend/) | `8080` |
-| `database` | MySQL 8.0 | [`db/migration/`](./backend/src/main/resources/db/migration/) | `3306` |
+| 服務       | 技術                                        | 位置                                                          | 預設埠 |
+| :--------- | :------------------------------------------ | :------------------------------------------------------------ | :----- |
+| `frontend` | Angular 17.2、NgModule、TypeScript 5.3、CSS | [`frontend/`](./frontend/)                                    | `4200` |
+| `backend`  | Spring Boot 3.2.2、Java 17、Spring Data JPA | [`backend/`](./backend/)                                      | `8080` |
+| `database` | MySQL 8.0                                   | [`db/migration/`](./backend/src/main/resources/db/migration/) | `3306` |
 
 ### 1.1 專案目錄
 
@@ -54,12 +54,19 @@ $env:BCRYPT_STRENGTH = '12'           # 選填，預設 12
 ### 1.3 啟動方式
 
 ```powershell
+# 前置
+
+1. 打開docker
+2. 打開資料庫
+
 # Terminal 1：後端
+cmd
 cd backend
 .\mvnw.cmd test
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 
 # Terminal 2：前端
+cmd
 cd frontend
 npm install
 npm start
@@ -74,10 +81,10 @@ npm start
 
 > 僅供本機開發與展示，禁止用於正式環境。
 
-| 類別 | 帳號 | 密碼 | 角色 | 權限 |
-| :--- | :--- | :--- | :--- | :--- |
-| 一般會員 | `user@example.com` | `user123` | `MEMBER` | 建立與管理自己的問卷、查看自己的回答與統計 |
-| 系統管理員 | `admin@example.com` | `admin123` | `ADMIN` | 查看及管理全部會員問卷、Legacy 問卷、回答與統計 |
+| 類別       | 帳號                | 密碼       | 角色     | 權限                                            |
+| :--------- | :------------------ | :--------- | :------- | :---------------------------------------------- |
+| 一般會員   | `user@example.com`  | `user123`  | `MEMBER` | 建立與管理自己的問卷、查看自己的回答與統計      |
+| 系統管理員 | `admin@example.com` | `admin123` | `ADMIN`  | 查看及管理全部會員問卷、Legacy 問卷、回答與統計 |
 
 兩個帳號只由 `local` Profile 的冪等 Seeder 建立。新帳號使用 BCrypt；既有 Legacy SHA-256 帳號會在第一次成功登入後漸進升級。
 
@@ -102,19 +109,19 @@ backend/src/main/java/com/survey/
 
 ### 2.1 常改的幾個點
 
-| 想做的事 | 改哪裡 |
-| :--- | :--- |
-| 開放或限制某支 API | [`SecurityConfig.java`](./backend/src/main/java/com/survey/config/SecurityConfig.java) |
-| 修改登入、註冊、登出或會員資料 | [`AuthService.java`](./backend/src/main/java/com/survey/service/AuthService.java) 與 [`AuthController.java`](./backend/src/main/java/com/survey/controller/AuthController.java) |
-| 修改公開問卷與填答流程 | [`QuizService.java`](./backend/src/main/java/com/survey/service/QuizService.java) 與 [`FrontQuizController.java`](./backend/src/main/java/com/survey/controller/FrontQuizController.java) |
-| 修改問卷建立、編輯、刪除或 Ownership | [`QuizManagementService.java`](./backend/src/main/java/com/survey/service/QuizManagementService.java) |
-| 修改 MEMBER 管理 API | [`MemberQuizController.java`](./backend/src/main/java/com/survey/controller/MemberQuizController.java) |
-| 修改 ADMIN 管理 API | [`AdminQuizController.java`](./backend/src/main/java/com/survey/controller/AdminQuizController.java) |
-| 修改回答統計 | [`StatisticsService.java`](./backend/src/main/java/com/survey/service/StatisticsService.java) |
-| 修改重複填答規則 | [`SubmissionEligibilityService.java`](./backend/src/main/java/com/survey/service/SubmissionEligibilityService.java) |
-| 修改資料表結構 | 於 [`db/migration/`](./backend/src/main/resources/db/migration/) 新增 `V{n}__描述.sql`，不要改既有 Migration |
-| 修改展示種子資料 | [`db/seed/V900__seed_demo_data.sql`](./backend/src/main/resources/db/seed/V900__seed_demo_data.sql)（僅 demo 堆疊載入） |
-| 修改統一錯誤格式 | [`GlobalExceptionHandler.java`](./backend/src/main/java/com/survey/common/GlobalExceptionHandler.java) |
+| 想做的事                             | 改哪裡                                                                                                                                                                                    |
+| :----------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 開放或限制某支 API                   | [`SecurityConfig.java`](./backend/src/main/java/com/survey/config/SecurityConfig.java)                                                                                                    |
+| 修改登入、註冊、登出或會員資料       | [`AuthService.java`](./backend/src/main/java/com/survey/service/AuthService.java) 與 [`AuthController.java`](./backend/src/main/java/com/survey/controller/AuthController.java)           |
+| 修改公開問卷與填答流程               | [`QuizService.java`](./backend/src/main/java/com/survey/service/QuizService.java) 與 [`FrontQuizController.java`](./backend/src/main/java/com/survey/controller/FrontQuizController.java) |
+| 修改問卷建立、編輯、刪除或 Ownership | [`QuizManagementService.java`](./backend/src/main/java/com/survey/service/QuizManagementService.java)                                                                                     |
+| 修改 MEMBER 管理 API                 | [`MemberQuizController.java`](./backend/src/main/java/com/survey/controller/MemberQuizController.java)                                                                                    |
+| 修改 ADMIN 管理 API                  | [`AdminQuizController.java`](./backend/src/main/java/com/survey/controller/AdminQuizController.java)                                                                                      |
+| 修改回答統計                         | [`StatisticsService.java`](./backend/src/main/java/com/survey/service/StatisticsService.java)                                                                                             |
+| 修改重複填答規則                     | [`SubmissionEligibilityService.java`](./backend/src/main/java/com/survey/service/SubmissionEligibilityService.java)                                                                       |
+| 修改資料表結構                       | 於 [`db/migration/`](./backend/src/main/resources/db/migration/) 新增 `V{n}__描述.sql`，不要改既有 Migration                                                                              |
+| 修改展示種子資料                     | [`db/seed/V900__seed_demo_data.sql`](./backend/src/main/resources/db/seed/V900__seed_demo_data.sql)（僅 demo 堆疊載入）                                                                   |
+| 修改統一錯誤格式                     | [`GlobalExceptionHandler.java`](./backend/src/main/java/com/survey/common/GlobalExceptionHandler.java)                                                                                    |
 
 ### 2.2 問卷資料關係
 
@@ -171,28 +178,28 @@ frontend/src/app/
 
 ### 3.1 常改的幾個點
 
-| 想做的事 | 改哪裡 |
-| :--- | :--- |
-| 修改全站色彩、按鈕、卡片、表單或表格 | [`styles.css`](./frontend/src/styles.css) |
-| 修改首頁 | [`pages/home/`](./frontend/src/app/pages/home/) |
-| 修改導覽列與角色選單 | [`navbar.component.ts`](./frontend/src/app/components/navbar/navbar.component.ts) |
-| 修改登入／註冊 | [`pages/auth/`](./frontend/src/app/pages/auth/) |
-| 修改會員資料 | [`profile.component.ts`](./frontend/src/app/pages/member/profile.component.ts) |
-| 修改公開問卷列表或搜尋 | [`quiz-list.component.ts`](./frontend/src/app/pages/client/quiz-list/quiz-list.component.ts) |
-| 修改訪客填答與驗證 | [`quiz-form.component.ts`](./frontend/src/app/pages/client/quiz-form/quiz-form.component.ts) |
-| 修改送出前確認 | [`quiz-confirm.component.ts`](./frontend/src/app/pages/client/quiz-confirm/quiz-confirm.component.ts) |
-| 修改「我的問卷」或 ADMIN 全清單 | [`admin-list.component.ts`](./frontend/src/app/pages/admin/admin-list/admin-list.component.ts) |
-| 修改問卷建立／編輯 Wizard | [`admin-edit.component.ts`](./frontend/src/app/pages/admin/admin-edit/admin-edit.component.ts) |
-| 修改回答列表／明細 | [`admin-feedback.component.ts`](./frontend/src/app/pages/admin/admin-feedback/admin-feedback.component.ts) |
-| 修改唯讀題目與統計頁 | [`admin-detail.component.ts`](./frontend/src/app/pages/admin/admin-detail/admin-detail.component.ts) |
-| 修改路由與 Guard | [`app-routing.module.ts`](./frontend/src/app/app-routing.module.ts) |
+| 想做的事                             | 改哪裡                                                                                                     |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------------------- |
+| 修改全站色彩、按鈕、卡片、表單或表格 | [`styles.css`](./frontend/src/styles.css)                                                                  |
+| 修改首頁                             | [`pages/home/`](./frontend/src/app/pages/home/)                                                            |
+| 修改導覽列與角色選單                 | [`navbar.component.ts`](./frontend/src/app/components/navbar/navbar.component.ts)                          |
+| 修改登入／註冊                       | [`pages/auth/`](./frontend/src/app/pages/auth/)                                                            |
+| 修改會員資料                         | [`profile.component.ts`](./frontend/src/app/pages/member/profile.component.ts)                             |
+| 修改公開問卷列表或搜尋               | [`quiz-list.component.ts`](./frontend/src/app/pages/client/quiz-list/quiz-list.component.ts)               |
+| 修改訪客填答與驗證                   | [`quiz-form.component.ts`](./frontend/src/app/pages/client/quiz-form/quiz-form.component.ts)               |
+| 修改送出前確認                       | [`quiz-confirm.component.ts`](./frontend/src/app/pages/client/quiz-confirm/quiz-confirm.component.ts)      |
+| 修改「我的問卷」或 ADMIN 全清單      | [`admin-list.component.ts`](./frontend/src/app/pages/admin/admin-list/admin-list.component.ts)             |
+| 修改問卷建立／編輯 Wizard            | [`admin-edit.component.ts`](./frontend/src/app/pages/admin/admin-edit/admin-edit.component.ts)             |
+| 修改回答列表／明細                   | [`admin-feedback.component.ts`](./frontend/src/app/pages/admin/admin-feedback/admin-feedback.component.ts) |
+| 修改唯讀題目與統計頁                 | [`admin-detail.component.ts`](./frontend/src/app/pages/admin/admin-detail/admin-detail.component.ts)       |
+| 修改路由與 Guard                     | [`app-routing.module.ts`](./frontend/src/app/app-routing.module.ts)                                        |
 
 ### 3.2 共用 Service
 
-| Service | 負責什麼 |
-| :--- | :--- |
-| [`AuthService`](./frontend/src/app/core/services/auth.service.ts) | 登入狀態、目前會員、角色、登出與 Token 保存 |
-| [`QuizService`](./frontend/src/app/core/services/quiz.service.ts) | 公開問卷、Email 檢查、填答送出與公開統計 |
+| Service                                                                      | 負責什麼                                     |
+| :--------------------------------------------------------------------------- | :------------------------------------------- |
+| [`AuthService`](./frontend/src/app/core/services/auth.service.ts)            | 登入狀態、目前會員、角色、登出與 Token 保存  |
+| [`QuizService`](./frontend/src/app/core/services/quiz.service.ts)            | 公開問卷、Email 檢查、填答送出與公開統計     |
 | [`AdminQuizService`](./frontend/src/app/core/services/admin-quiz.service.ts) | MEMBER／ADMIN 問卷管理、回答明細與受保護統計 |
 
 HTTP Interceptor 只對站內 `/api` Request 加入 `Authorization: Bearer <JWT>`；不要在各頁自行重複組 Authorization Header。
@@ -201,22 +208,22 @@ HTTP Interceptor 只對站內 `/api` Request 加入 `Authorization: Bearer <JWT>
 
 ## 4. 頁面對照表（改哪裡渲染哪裡）
 
-| 頁面 | 路由 | 權限 | Component | 改了會影響 |
-| :--- | :--- | :--- | :--- | :--- |
-| **首頁** | `/`、`/home` | 公開 | [HomeComponent](./frontend/src/app/pages/home/home.component.ts) | Hero、功能介紹、流程、CTA、Footer |
-| **公開問卷列表** | `/quiz` | 公開 | [QuizListComponent](./frontend/src/app/pages/client/quiz-list/quiz-list.component.ts) | 搜尋、公開狀態、填答入口 |
-| **問卷填答** | `/quiz/:id/form` | 公開 | [QuizFormComponent](./frontend/src/app/pages/client/quiz-form/quiz-form.component.ts) | 基本資料、Q／M／T 題型、必填驗證 |
-| **送出確認** | `/quiz/:id/confirm` | 公開 | [QuizConfirmComponent](./frontend/src/app/pages/client/quiz-confirm/quiz-confirm.component.ts) | 回答覆核與正式送出 |
-| **公開統計** | `/quiz/:id/stats` | 公開問卷 | [QuizStatsComponent](./frontend/src/app/pages/client/quiz-stats/quiz-stats.component.ts) | 公開問卷基礎統計 |
-| **登入** | `/login` | 公開 | [LoginComponent](./frontend/src/app/pages/auth/login.component.ts) | 登入、錯誤提示、returnUrl |
-| **註冊** | `/register` | 公開 | [RegisterComponent](./frontend/src/app/pages/auth/register.component.ts) | 註冊與欄位驗證 |
-| **會員資料** | `/member/profile` | 已登入 | [ProfileComponent](./frontend/src/app/pages/member/profile.component.ts) | 姓名、手機、密碼更新 |
-| **我的問卷** | `/member/quizzes` | MEMBER | [AdminListComponent](./frontend/src/app/pages/admin/admin-list/admin-list.component.ts) | 只顯示自己的全部狀態問卷 |
-| **建立／編輯自己的問卷** | `/member/quizzes/new`、`/:id/edit` | MEMBER | [AdminEditComponent](./frontend/src/app/pages/admin/admin-edit/admin-edit.component.ts) | 基本資料、Q／M／T、草稿與發布 |
-| **自己的回答與統計** | `/member/quizzes/:id/detail` | MEMBER | [AdminDetailComponent](./frontend/src/app/pages/admin/admin-detail/admin-detail.component.ts) | 題目、回答列表、明細、統計 |
-| **ADMIN 問卷清單** | `/admin` | ADMIN | [AdminListComponent](./frontend/src/app/pages/admin/admin-list/admin-list.component.ts) | 所有會員與 Legacy 問卷 |
-| **ADMIN 建立／編輯** | `/admin/new`、`/admin/:id/edit` | ADMIN | [AdminEditComponent](./frontend/src/app/pages/admin/admin-edit/admin-edit.component.ts) | 全部問卷管理 |
-| **ADMIN 回答與統計** | `/admin/:id/detail` | ADMIN | [AdminDetailComponent](./frontend/src/app/pages/admin/admin-detail/admin-detail.component.ts) | 全部問卷回答與統計 |
+| 頁面                     | 路由                               | 權限     | Component                                                                                      | 改了會影響                        |
+| :----------------------- | :--------------------------------- | :------- | :--------------------------------------------------------------------------------------------- | :-------------------------------- |
+| **首頁**                 | `/`、`/home`                       | 公開     | [HomeComponent](./frontend/src/app/pages/home/home.component.ts)                               | Hero、功能介紹、流程、CTA、Footer |
+| **公開問卷列表**         | `/quiz`                            | 公開     | [QuizListComponent](./frontend/src/app/pages/client/quiz-list/quiz-list.component.ts)          | 搜尋、公開狀態、填答入口          |
+| **問卷填答**             | `/quiz/:id/form`                   | 公開     | [QuizFormComponent](./frontend/src/app/pages/client/quiz-form/quiz-form.component.ts)          | 基本資料、Q／M／T 題型、必填驗證  |
+| **送出確認**             | `/quiz/:id/confirm`                | 公開     | [QuizConfirmComponent](./frontend/src/app/pages/client/quiz-confirm/quiz-confirm.component.ts) | 回答覆核與正式送出                |
+| **公開統計**             | `/quiz/:id/stats`                  | 公開問卷 | [QuizStatsComponent](./frontend/src/app/pages/client/quiz-stats/quiz-stats.component.ts)       | 公開問卷基礎統計                  |
+| **登入**                 | `/login`                           | 公開     | [LoginComponent](./frontend/src/app/pages/auth/login.component.ts)                             | 登入、錯誤提示、returnUrl         |
+| **註冊**                 | `/register`                        | 公開     | [RegisterComponent](./frontend/src/app/pages/auth/register.component.ts)                       | 註冊與欄位驗證                    |
+| **會員資料**             | `/member/profile`                  | 已登入   | [ProfileComponent](./frontend/src/app/pages/member/profile.component.ts)                       | 姓名、手機、密碼更新              |
+| **我的問卷**             | `/member/quizzes`                  | MEMBER   | [AdminListComponent](./frontend/src/app/pages/admin/admin-list/admin-list.component.ts)        | 只顯示自己的全部狀態問卷          |
+| **建立／編輯自己的問卷** | `/member/quizzes/new`、`/:id/edit` | MEMBER   | [AdminEditComponent](./frontend/src/app/pages/admin/admin-edit/admin-edit.component.ts)        | 基本資料、Q／M／T、草稿與發布     |
+| **自己的回答與統計**     | `/member/quizzes/:id/detail`       | MEMBER   | [AdminDetailComponent](./frontend/src/app/pages/admin/admin-detail/admin-detail.component.ts)  | 題目、回答列表、明細、統計        |
+| **ADMIN 問卷清單**       | `/admin`                           | ADMIN    | [AdminListComponent](./frontend/src/app/pages/admin/admin-list/admin-list.component.ts)        | 所有會員與 Legacy 問卷            |
+| **ADMIN 建立／編輯**     | `/admin/new`、`/admin/:id/edit`    | ADMIN    | [AdminEditComponent](./frontend/src/app/pages/admin/admin-edit/admin-edit.component.ts)        | 全部問卷管理                      |
+| **ADMIN 回答與統計**     | `/admin/:id/detail`                | ADMIN    | [AdminDetailComponent](./frontend/src/app/pages/admin/admin-detail/admin-detail.component.ts)  | 全部問卷回答與統計                |
 
 路由與 Guard 的完整對應集中在 [`app-routing.module.ts`](./frontend/src/app/app-routing.module.ts)。
 
@@ -243,19 +250,19 @@ HTTP Interceptor 只對站內 `/api` Request 加入 `Authorization: Bearer <JWT>
 
 ### 5.2 API 權限矩陣
 
-| API／操作 | 訪客 | MEMBER | ADMIN |
-| :--- | :---: | :---: | :---: |
-| 登入、註冊 | 可 | 可 | 可 |
-| 公開且有效的問卷列表／明細 | 可 | 可 | 可 |
-| 填寫公開問卷 | 可 | 可 | 可 |
-| `/api/auth/me` | 401 | 自己 | 自己 |
-| 建立問卷 | 401 | 可，owner 為本人 | 可，owner 為本人 |
-| 管理自己的問卷 | 401 | 可 | 可 |
-| 管理其他會員問卷 | 401 | 403 | 可 |
-| 管理 Legacy 問卷 | 401 | 403 | 可 |
-| 查看自己的問卷回答／統計 | 401 | 可 | 可 |
-| 查看其他會員回答／統計 | 401 | 403 | 可 |
-| `/api/admin/**` | 401 | 403 | 可 |
+| API／操作                  | 訪客 |      MEMBER      |      ADMIN       |
+| :------------------------- | :--: | :--------------: | :--------------: |
+| 登入、註冊                 |  可  |        可        |        可        |
+| 公開且有效的問卷列表／明細 |  可  |        可        |        可        |
+| 填寫公開問卷               |  可  |        可        |        可        |
+| `/api/auth/me`             | 401  |       自己       |       自己       |
+| 建立問卷                   | 401  | 可，owner 為本人 | 可，owner 為本人 |
+| 管理自己的問卷             | 401  |        可        |        可        |
+| 管理其他會員問卷           | 401  |       403        |        可        |
+| 管理 Legacy 問卷           | 401  |       403        |        可        |
+| 查看自己的問卷回答／統計   | 401  |        可        |        可        |
+| 查看其他會員回答／統計     | 401  |       403        |        可        |
+| `/api/admin/**`            | 401  |       403        |        可        |
 
 ### 5.3 Token Version 與密碼
 
@@ -311,15 +318,15 @@ npm run build
 
 目前驗證基準：
 
-| 項目 | 結果 |
-| :--- | :--- |
-| Maven | 47 tests，0 failures、0 errors、0 skipped |
-| Angular production Build | PASS |
-| Hibernate `validate` | PASS |
-| 瀏覽器 Console | 0 error／warn |
-| JWT 篡改、錯誤密碼、登出舊 Token | 401 |
-| MEMBER 呼叫 ADMIN API | 403 |
-| ADMIN 管理 API | 200 |
+| 項目                             | 結果                                      |
+| :------------------------------- | :---------------------------------------- |
+| Maven                            | 47 tests，0 failures、0 errors、0 skipped |
+| Angular production Build         | PASS                                      |
+| Hibernate `validate`             | PASS                                      |
+| 瀏覽器 Console                   | 0 error／warn                             |
+| JWT 篡改、錯誤密碼、登出舊 Token | 401                                       |
+| MEMBER 呼叫 ADMIN API            | 403                                       |
+| ADMIN 管理 API                   | 200                                       |
 
 ### 7.2 手動回歸
 
@@ -359,48 +366,48 @@ Angular Guard 與隱藏按鈕只改善操作體驗，使用者仍可直接呼叫
 
 ## 9. Schema Migration
 
-| Migration | 用途 |
-| :--- | :--- |
-| [`V20260805__add_token_version.sql`](./docs/requirements/migrations/V20260805__add_token_version.sql) | 新增 JWT 撤銷用 `token_version` |
-| [`V20260805_02__expand_password_hash_for_bcrypt.sql`](./docs/requirements/migrations/V20260805_02__expand_password_hash_for_bcrypt.sql) | 將 `password_hash` 擴充為 `VARCHAR(255)` |
-| [`V20260805_03__add_quiz_owner.sql`](./docs/requirements/migrations/V20260805_03__add_quiz_owner.sql) | 新增 `quiz.owner_id`、Index 與 `ON DELETE RESTRICT` Foreign Key |
+| Migration                                                                                                                               | 用途                                                            |
+| :-------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| [`V20260805__add_token_version.sql`](./docs/requirements/migrations/V20260805__add_token_version.sql)                                   | 新增 JWT 撤銷用 `token_version`                                 |
+| [`V20260805_02__expand_password_hash_for_bcrypt.sql`](./docs/requirements/migrations/V20260805_02__expand_password_hash_for_bcrypt.sql) | 將 `password_hash` 擴充為 `VARCHAR(255)`                        |
+| [`V20260805_03__add_quiz_owner.sql`](./docs/requirements/migrations/V20260805_03__add_quiz_owner.sql)                                   | 新增 `quiz.owner_id`、Index 與 `ON DELETE RESTRICT` Foreign Key |
 
 上述三份是導入 Flyway 之前手動套用的歷史紀錄，其結果已包含在 Flyway 的 `V1__baseline_schema.sql` 中。之後的所有 Schema 變更一律走 [`db/migration/`](./backend/src/main/resources/db/migration/)：
 
-| Migration | 用途 |
-| :--- | :--- |
-| `V1__baseline_schema.sql` | 既有 Schema 基準線；既有 DB 會被標記為已套用而不重跑 |
-| `V2__normalize_email_and_constrain_type.sql` | Email 一律存小寫；`quiz_question.type` 加上 CHECK |
-| `V3__normalize_options.sql` | 選項獨立成 `quiz_option`；答案改以 `response_answer_option` 連結 |
-| `V4__drop_superseded_columns.sql` | 移除 `options` JSON 與只寫不讀的 `normalized_*` 欄位 |
+| Migration                                    | 用途                                                             |
+| :------------------------------------------- | :--------------------------------------------------------------- |
+| `V1__baseline_schema.sql`                    | 既有 Schema 基準線；既有 DB 會被標記為已套用而不重跑             |
+| `V2__normalize_email_and_constrain_type.sql` | Email 一律存小寫；`quiz_question.type` 加上 CHECK                |
+| `V3__normalize_options.sql`                  | 選項獨立成 `quiz_option`；答案改以 `response_answer_option` 連結 |
+| `V4__drop_superseded_columns.sql`            | 移除 `options` JSON 與只寫不讀的 `normalized_*` 欄位             |
 
 ---
 
 ## 10. 已知限制與後續項目
 
-| 項目 | 說明 |
-| :--- | :--- |
-| Logout All Sessions | 任一裝置登出會讓同帳號全部舊 JWT 失效，不是單裝置登出 |
-| Logout Request 斷線 | 前端會清除本機狀態，但後端若未收到 Request，被複製的 JWT 可能有效至到期 |
-| Refresh Token | 尚未實作 |
-| 忘記密碼 Email | 尚未實作 |
-| Ownership 轉移／共同編輯 | 尚未實作，目前一份問卷只有一位 owner |
-| Audit Log／問卷版本控制 | 尚未實作 |
-| 進階統計 | 目前提供回答總數、選項票數、比例與文字回答，尚無進階分析 |
-| 手機版 | 本專案目前只要求桌面網頁；390px Navbar 仍可能水平捲動 |
-| 原生 `alert()`／`confirm()` | 部分既有操作仍使用，後續可改成行內訊息或自製 Dialog |
+| 項目                        | 說明                                                                    |
+| :-------------------------- | :---------------------------------------------------------------------- |
+| Logout All Sessions         | 任一裝置登出會讓同帳號全部舊 JWT 失效，不是單裝置登出                   |
+| Logout Request 斷線         | 前端會清除本機狀態，但後端若未收到 Request，被複製的 JWT 可能有效至到期 |
+| Refresh Token               | 尚未實作                                                                |
+| 忘記密碼 Email              | 尚未實作                                                                |
+| Ownership 轉移／共同編輯    | 尚未實作，目前一份問卷只有一位 owner                                    |
+| Audit Log／問卷版本控制     | 尚未實作                                                                |
+| 進階統計                    | 目前提供回答總數、選項票數、比例與文字回答，尚無進階分析                |
+| 手機版                      | 本專案目前只要求桌面網頁；390px Navbar 仍可能水平捲動                   |
+| 原生 `alert()`／`confirm()` | 部分既有操作仍使用，後續可改成行內訊息或自製 Dialog                     |
 
 ---
 
 ## 11. 延伸文件
 
-| 主題 | 文件 |
-| :--- | :--- |
-| 8/8 Demo 核心狀態 | [demo-core-status.md](./docs/requirements/demo-core-status.md) |
-| 問卷 Ownership | [實作](./docs/requirements/questionnaire-ownership-implementation.md)／[驗證](./docs/requirements/questionnaire-ownership-verification-report.md) |
-| Spring Security JWT | [實作](./docs/requirements/spring-security-jwt-implementation.md)／[驗證](./docs/requirements/spring-security-jwt-verification-report.md) |
-| Token Version 撤銷 | [實作](./docs/requirements/token-version-revocation-implementation.md)／[驗證](./docs/requirements/token-version-revocation-verification-report.md) |
-| BCrypt 漸進遷移 | [實作](./docs/requirements/bcrypt-migration-implementation.md)／[驗證](./docs/requirements/bcrypt-migration-verification-report.md) |
-| 固定測試帳號 | [實作](./docs/requirements/default-test-accounts-implementation.md)／[驗證](./docs/requirements/default-test-accounts-verification-report.md) |
-| 角色導覽 | [實作](./docs/requirements/role-navigation-implementation.md)／[驗證](./docs/requirements/role-navigation-verification-report.md) |
-| 本機後端環境 | [backend-local-environment.md](./docs/setup/backend-local-environment.md) |
+| 主題                | 文件                                                                                                                                                |
+| :------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8/8 Demo 核心狀態   | [demo-core-status.md](./docs/requirements/demo-core-status.md)                                                                                      |
+| 問卷 Ownership      | [實作](./docs/requirements/questionnaire-ownership-implementation.md)／[驗證](./docs/requirements/questionnaire-ownership-verification-report.md)   |
+| Spring Security JWT | [實作](./docs/requirements/spring-security-jwt-implementation.md)／[驗證](./docs/requirements/spring-security-jwt-verification-report.md)           |
+| Token Version 撤銷  | [實作](./docs/requirements/token-version-revocation-implementation.md)／[驗證](./docs/requirements/token-version-revocation-verification-report.md) |
+| BCrypt 漸進遷移     | [實作](./docs/requirements/bcrypt-migration-implementation.md)／[驗證](./docs/requirements/bcrypt-migration-verification-report.md)                 |
+| 固定測試帳號        | [實作](./docs/requirements/default-test-accounts-implementation.md)／[驗證](./docs/requirements/default-test-accounts-verification-report.md)       |
+| 角色導覽            | [實作](./docs/requirements/role-navigation-implementation.md)／[驗證](./docs/requirements/role-navigation-verification-report.md)                   |
+| 本機後端環境        | [backend-local-environment.md](./docs/setup/backend-local-environment.md)                                                                           |

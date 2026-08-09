@@ -33,8 +33,11 @@ public class AdminQuizController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(quizManagementService.getAdminQuizzes(name, startDate, endDate, page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        return ApiResponse.ok(quizManagementService.getAdminQuizzes(
+                name, startDate, endDate, page, size, sortBy, sortDirection));
     }
 
     @PostMapping
@@ -58,13 +61,24 @@ public class AdminQuizController {
         return ApiResponse.ok("問卷刪除成功！", null);
     }
 
+    @PutMapping("/{id}/status")
+    public ApiResponse<QuizListDto> updateStatus(@PathVariable Integer id,
+                                                  @Valid @RequestBody QuizStatusUpdateRequestDto req) {
+        return ApiResponse.ok("問卷狀態更新成功", quizManagementService.updateAdminStatus(id, req.getStatus()));
+    }
+
     @GetMapping("/{id}/responses")
     public ApiResponse<Page<QuizResponseListDto>> getQuizResponses(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Integer id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(quizResponseService.getQuizResponses(id, page, size, principal.getUserId(), AS_ADMIN));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String respondentName,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        return ApiResponse.ok(quizResponseService.getQuizResponses(
+                id, page, size, principal.getUserId(), AS_ADMIN,
+                respondentName, sortBy, sortDirection));
     }
 
     @GetMapping("/response/{responseId}")

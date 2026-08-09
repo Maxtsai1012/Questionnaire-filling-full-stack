@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +27,7 @@ public class ResponseSubmitDto {
     @Email(message = "信箱格式不符！")
     private String email;
 
+    @NotNull(message = "年齡不能為空！")
     @Min(value = 0, message = "年齡不得為負數！")
     private Integer age;
 

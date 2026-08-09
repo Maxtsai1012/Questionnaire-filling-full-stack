@@ -11,6 +11,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDate;
 import java.util.HexFormat;
 import java.util.Optional;
 
@@ -90,22 +91,43 @@ class AuthServicePasswordMigrationTest {
         verify(repository, never()).upgradePasswordHash(anyInt(), anyString(), anyString());
     }
 
-    @Test void realPasswordChangeUsesBcryptAndIncrementsTokenVersion() {
-        AppUser current = user(1, encoder.encode("old-value"), 7);
-        AppUser updated = user(1, encoder.encode("new-value"), 8);
-        when(repository.saveAndFlush(current)).thenReturn(current);
+    @Test void realPasswordChangeVerifiesCurrentPasswordUsesBcryptAndRevokesOldToken() {
+        AppUser current = user(1, encoder.encode("old-value1"), 7);
         when(repository.changePasswordAndIncrementTokenVersion(eq(1), startsWith("{bcrypt}"))).thenReturn(1);
-        when(repository.findById(1)).thenReturn(Optional.of(updated));
+        AuthDtos.ChangePasswordRequest request = new AuthDtos.ChangePasswordRequest();
+        request.setCurrentPassword("old-value1");
+        request.setNewPassword("new-value2");
+
+        service.changePassword(current, request);
+
+        verify(repository).changePasswordAndIncrementTokenVersion(eq(1), startsWith("{bcrypt}"));
+        verify(jwtTokenProvider, never()).createToken(anyInt(), anyInt());
+    }
+
+    @Test void wrongCurrentPasswordDoesNotChangePassword() {
+        AppUser current = user(1, encoder.encode("old-value1"), 7);
+        AuthDtos.ChangePasswordRequest request = new AuthDtos.ChangePasswordRequest();
+        request.setCurrentPassword("wrong-value9");
+        request.setNewPassword("new-value2");
+
+        assertThrows(IllegalArgumentException.class, () -> service.changePassword(current, request));
+
+        verify(repository, never()).changePasswordAndIncrementTokenVersion(anyInt(), anyString());
+    }
+
+    @Test void profileUpdatePersistsBirthdayAndReturnsIt() {
+        AppUser current = user(1, encoder.encode("old-value1"), 7);
+        when(repository.save(current)).thenReturn(current);
         AuthDtos.UpdateProfileRequest request = new AuthDtos.UpdateProfileRequest();
-        request.setName("Test User");
-        request.setPhone("0912345678");
-        request.setNewPassword("new-value");
+        request.setName("Updated User");
+        request.setPhone("0922222222");
+        request.setBirthday(LocalDate.of(1992, 6, 15));
 
         AuthDtos.AuthResponse response = service.updateProfile(current, request);
 
-        assertEquals("test-token", response.getToken());
-        verify(repository).changePasswordAndIncrementTokenVersion(eq(1), startsWith("{bcrypt}"));
-        verify(jwtTokenProvider).createToken(1, 8);
+        assertEquals(LocalDate.of(1992, 6, 15), current.getBirthday());
+        assertEquals(LocalDate.of(1992, 6, 15), response.getBirthday());
+        verify(repository).save(current);
     }
 
     @Test void registrationStoresBcryptWithMemberDefaults() {
@@ -119,6 +141,7 @@ class AuthServicePasswordMigrationTest {
         request.setName("Test User");
         request.setEmail("new@example.com");
         request.setPhone("0912345678");
+        request.setBirthday(LocalDate.of(2000, 1, 1));
         request.setPassword("new-value");
 
         AuthDtos.AuthResponse response = service.register(request);
@@ -128,6 +151,7 @@ class AuthServicePasswordMigrationTest {
                 .map(call -> (AppUser) call.getArgument(0)).findFirst().orElseThrow();
         assertTrue(saved.getPasswordHash().startsWith("{bcrypt}"));
         assertEquals("MEMBER", saved.getRole());
+        assertEquals(LocalDate.of(2000, 1, 1), saved.getBirthday());
         assertEquals(0, saved.getTokenVersion());
         assertEquals("MEMBER", response.getRole());
     }
@@ -145,6 +169,7 @@ class AuthServicePasswordMigrationTest {
         user.setName("Test User");
         user.setEmail("member@example.com");
         user.setPhone("0912345678");
+        user.setBirthday(LocalDate.of(2000, 1, 1));
         user.setPasswordHash(hash);
         user.setTokenVersion(tokenVersion);
         return user;

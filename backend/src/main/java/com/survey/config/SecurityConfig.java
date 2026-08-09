@@ -35,7 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/quiz/**",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/member/**").authenticated()
+                        .requestMatchers("/api/auth/me", "/api/auth/me/**", "/api/auth/logout", "/api/member/**").authenticated()
                         .anyRequest().denyAll())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

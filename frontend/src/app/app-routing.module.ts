@@ -26,15 +26,15 @@ const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'member/profile', component: ProfileComponent, canActivate: [AuthGuard] },
-  { path: 'member/quizzes', component: AdminListComponent, canActivate: [AuthGuard] },
-  { path: 'member/quizzes/new', component: AdminEditComponent, canActivate: [AuthGuard] },
-  { path: 'member/quizzes/:id/edit', component: AdminEditComponent, canActivate: [AuthGuard] },
-  { path: 'member/quizzes/:id/detail', component: AdminDetailComponent, canActivate: [AuthGuard] },
+  { path: 'member/quizzes', component: AdminListComponent, canActivate: [AuthGuard], data: { managementScope: 'owned' } },
+  { path: 'member/quizzes/new', component: AdminEditComponent, canActivate: [AuthGuard], data: { managementScope: 'owned' } },
+  { path: 'member/quizzes/:id/edit', component: AdminEditComponent, canActivate: [AuthGuard], data: { managementScope: 'owned' } },
+  { path: 'member/quizzes/:id/detail', component: AdminDetailComponent, canActivate: [AuthGuard], data: { managementScope: 'owned' } },
 
-  { path: 'admin', component: AdminListComponent, canActivate: [AdminGuard] },
-  { path: 'admin/new', component: AdminEditComponent, canActivate: [AdminGuard] },
-  { path: 'admin/:id/edit', component: AdminEditComponent, canActivate: [AdminGuard] },
-  { path: 'admin/:id/detail', component: AdminDetailComponent, canActivate: [AdminGuard] },
+  { path: 'admin', component: AdminListComponent, canActivate: [AdminGuard], data: { managementScope: 'admin' } },
+  { path: 'admin/new', component: AdminEditComponent, canActivate: [AdminGuard], data: { managementScope: 'admin' } },
+  { path: 'admin/:id/edit', component: AdminEditComponent, canActivate: [AdminGuard], data: { managementScope: 'admin' } },
+  { path: 'admin/:id/detail', component: AdminDetailComponent, canActivate: [AdminGuard], data: { managementScope: 'admin' } },
 
   { path: '**', redirectTo: 'quiz' }
 ];

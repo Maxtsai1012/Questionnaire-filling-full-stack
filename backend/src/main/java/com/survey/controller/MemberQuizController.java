@@ -40,9 +40,12 @@ public class MemberQuizController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
         return ApiResponse.ok(quizManagementService.getOwnedQuizzes(
-                principal.getUserId(), name, startDate, endDate, page, size));
+                principal.getUserId(), name, startDate, endDate, page, size,
+                sortBy, sortDirection));
     }
 
     @GetMapping("/{id}")
@@ -70,8 +73,13 @@ public class MemberQuizController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Integer id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(quizResponseService.getQuizResponses(id, page, size, principal.getUserId(), AS_ADMIN));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String respondentName,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        return ApiResponse.ok(quizResponseService.getQuizResponses(
+                id, page, size, principal.getUserId(), AS_ADMIN,
+                respondentName, sortBy, sortDirection));
     }
 
     @GetMapping("/response/{responseId}")
@@ -86,5 +94,12 @@ public class MemberQuizController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Integer id) {
         return ApiResponse.ok(statisticsService.getManagedQuizStatistics(id, principal.getUserId(), AS_ADMIN));
+    }
+
+    @GetMapping("/{id}/my-response")
+    public ApiResponse<QuizResponseDetailDto> myResponse(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Integer id) {
+        return ApiResponse.ok(quizResponseService.getMyResponse(id, principal.getUserId()));
     }
 }

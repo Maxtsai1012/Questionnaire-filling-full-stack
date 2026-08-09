@@ -1,273 +1,1369 @@
 ﻿# Style Guides
 
-本文件整理 `D:\MegumiNoSurvey` 前端目前實際使用的配色、字體與視覺風格，供 Demo 前維護、後續 UI 調整與新增頁面時對齊使用。主要依據：
+> 本文件為本專案前端視覺設計的唯一主要規範（Single Source of Truth）。
+>
+> 新增頁面、修改 UI、重構 CSS、建立圖片、調整圖表或進行全站 Style Refresh 時，應優先遵循本文件。
+>
+> **Primary / Brand Color 固定為 `#1F8196`。**
 
-- `frontend/src/styles.css`
-- `frontend/src/index.html`
-- `frontend/src/app/pages/home/home.component.css`
-- `frontend/src/app/components/navbar/navbar.component.ts`
-- 既有 admin、client、auth、member 頁面中的 inline style
+---
 
-## 1. 整體視覺定位
+# 1. Purpose
 
-本專案是動態問卷管理系統，視覺風格應保持「清楚、可信、效率導向」。整體不走華麗行銷頁，而是以 SaaS / 後台工具感為主：資訊層級清楚、表格可掃描、表單易填寫、錯誤提示明確。
+本專案為動態問卷管理系統，包含：
 
-目前專案存在兩套相容中的設計語言：
+- 公開問卷瀏覽
+- 問卷填答
+- 會員登入／註冊
+- 問卷建立與管理
+- 回答列表與回答明細
+- 基礎統計
+- MEMBER 個人管理功能
+- ADMIN 後台管理功能
 
-| 區域 | 主要用途 | 視覺特徵 |
-|---|---|---|
-| Global Legacy UI | 問卷列表、填答、管理頁、統計頁 | 藍色主色、淺灰背景、白色卡片、表格導向 |
-| Homepage Design System (`--ds-*`) | 首頁、Navbar、登入/註冊/會員資料頁 | 青綠主色、柔和背景、較完整的 spacing / typography token |
-
-後續新增 Demo 相關畫面時，若是前台首頁或帳號流程，優先使用 `--ds-*` token；若是既有問卷管理、表格、填答、統計流程，優先沿用 legacy `.btn`、`.card`、`.table`、`.form-control` 樣式，避免同頁混搭過重。
-
-## 2. 色彩系統
-
-### 2.1 Legacy UI Colors
-
-| Token | Hex | 用途 |
-|---|---:|---|
-| `--primary` | `#3b82f6` | 主要按鈕、連結、焦點、統計重點 |
-| `--primary-hover` | `#2563eb` | 主要互動 hover |
-| `--primary-light` | `#eff6ff` | 淺藍提示、pagination hover、資訊背景 |
-| `--secondary` | `#64748b` | 次要文字、label、弱化資訊 |
-| `--success` | `#10b981` | 成功狀態 |
-| `--warning` | `#f59e0b` | 警告狀態 |
-| `--danger` | `#ef4444` | 錯誤、必填、刪除、危險操作 |
-| `--danger-hover` | `#dc2626` | 危險操作 hover |
-| `--bg-main` | `#f8fafc` | 頁面背景、資料區塊背景 |
-| `--bg-card` | `#ffffff` | 卡片、表格、modal 背景 |
-| `--text-dark` | `#0f172a` | 主標題、主要內文 |
-| `--text-muted` | `#64748b` | 次要文字 |
-| `--text-light` | `#94a3b8` | empty state、placeholder 類文字 |
-| `--border` | `#e2e8f0` | 表格、卡片、分隔線 |
-| `--border-focus` | `#3b82f6` | input focus |
-
-### 2.2 Homepage / Account Design System Colors
-
-| Token | Hex | 用途 |
-|---|---:|---|
-| `--ds-color-primary` | `#1f8196` | 首頁 CTA、Logo mark、Navbar active、主要操作 |
-| `--ds-color-primary-hover` | `#17697c` | 首頁/帳號頁主要 hover |
-| `--ds-color-secondary` | `#526b78` | 首頁導航、輔助文字 |
-| `--ds-color-accent` | `#35a995` | focus、accent badge、輔助亮點 |
-| `--ds-color-background` | `#f4f8fb` | 首頁與帳號頁背景 |
-| `--ds-color-surface` | `#ffffff` | 卡片、Header、Panel 背景 |
-| `--ds-color-text-primary` | `#17232c` | 首頁主標題、卡片標題 |
-| `--ds-color-text-secondary` | `#52616b` | 首頁內文與輔助資訊 |
-| `--ds-color-border` | `#d6e0e7` | 首頁卡片與區塊邊線 |
-| `--ds-color-success` | `#21875f` | 成功 badge / alert |
-| `--ds-color-warning` | `#b7791f` | 警告 badge / alert |
-| `--ds-color-error` | `#c43d4b` | 錯誤 badge / alert |
-
-### 2.3 狀態色使用規則
-
-| 狀態 | 建議用色 | 使用場景 |
-|---|---|---|
-| 成功 | `#10b981` / `#21875f` | 儲存成功、登入成功、發布成功 |
-| 警告 | `#f59e0b` / `#b7791f` | 草稿、尚未開始、提醒使用者注意 |
-| 錯誤 | `#ef4444` / `#c43d4b` | 表單錯誤、API 失敗、刪除警示 |
-| 資訊 | `#3b82f6` / `#1f8196` | 說明提示、統計數字、主要導向 |
-| 停用/空資料 | `#94a3b8` / `#cbd5e1` | Disabled、empty state、不可操作資訊 |
-
-## 3. 字體與文字階層
-
-### 3.1 字體
-
-目前 `index.html` 載入 Google Font：`Plus Jakarta Sans`，全域 fallback 為：
-
-```css
-'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
-```
-
-注意：production build 若啟用 Angular font inline，會需要連線 Google Fonts；目前 build 設定已關閉 font inline，以避免離線或受限網路環境造成 build 失敗。
-
-### 3.2 Legacy UI Typography
-
-| 類型 | 尺寸 | 字重 | 用途 |
-|---|---:|---:|---|
-| Body | `15px` | 400 | 全站基礎文字 |
-| Page title `.page-title` | `1.75rem` | 700 | 管理頁、列表頁主標題 |
-| Card / Section heading | `1.1rem` - `1.3rem` | 700 | 卡片標題、問卷區段標題 |
-| Table header | `0.85rem` | 700 | 表格欄位名稱，使用 uppercase |
-| Button | `0.925rem` | 600 | legacy `.btn` |
-| Helper / meta text | `0.8rem` - `0.9rem` | 400-600 | 日期、提示、狀態輔助文字 |
-
-### 3.3 Homepage Design System Typography
-
-| Token | 尺寸 | 行高 | 用途 |
-|---|---:|---:|---|
-| `--ds-font-size-page-title` | `2.5rem` | `1.18` | 首頁大型標題 |
-| `--ds-font-size-section-title` | `1.75rem` | `1.3` | 首頁 section 標題、帳號頁主標題 |
-| `--ds-font-size-card-title` | `1.125rem` | `1.4` | Feature card、流程卡標題 |
-| `--ds-font-size-body` | `1rem` | `1.65` | 首頁段落文字 |
-| `--ds-font-size-helper` | `0.875rem` | `1.5` | 輔助文字、Badge |
-| `--ds-font-size-button` | `0.9375rem` | `1` | `ds-button` |
-| `--ds-font-size-form-hint` | `0.8125rem` | `1.5` | 表單提示與錯誤 |
-
-### 3.4 中文內容建議
-
-- 標題短而直接，避免過長句子擠壓卡片。
-- 操作按鈕使用動詞開頭，例如「新增問卷」、「查看回答」、「發布」。
-- 錯誤訊息需說明下一步，例如「請輸入有效 Email」優於「格式錯誤」。
-- Empty state 文字保持溫和，不要使用技術性語句。
-
-## 4. Layout 與間距
-
-### 4.1 Legacy Layout
-
-| 元素 | 規格 |
-|---|---|
-| `.container` | `max-width: 1100px; padding: 24px 16px` |
-| `.page-header` | Flex，標題與操作按鈕左右排列 |
-| `.card` | `padding: 24px; margin-bottom: 24px` |
-| `.search-grid` | `auto-fit minmax(220px, 1fr)` |
-| `.table-responsive` | 橫向 overflow，保護窄螢幕表格 |
-
-### 4.2 Homepage / DS Layout
-
-| Token | 值 | 用途 |
-|---|---:|---|
-| `--ds-content-max-width` | `1120px` | 首頁內容最大寬度 |
-| `--ds-section-padding-block` | `64px` | section 上下間距 |
-| `--ds-space-1` | `4px` | 極小間距 |
-| `--ds-space-2` | `8px` | icon gap、輕量 gap |
-| `--ds-space-3` | `12px` | button padding、form gap |
-| `--ds-space-4` | `16px` | 基礎區塊 padding |
-| `--ds-space-5` | `24px` | card/form 區塊間距 |
-| `--ds-space-6` | `32px` | 大卡片 padding |
-| `--ds-space-7` | `48px` | 首頁大區塊 gap |
-| `--ds-space-8` | `64px` | 帳號頁/section 大間距 |
-
-## 5. Component 規範
-
-### 5.1 Buttons
-
-Legacy UI 使用 `.btn` 系列：
-
-| Class | 用途 |
-|---|---|
-| `.btn-primary` | 主要操作，例如查詢、新增、送出 |
-| `.btn-secondary` | 次要操作，例如返回、取消 |
-| `.btn-danger` | 刪除與危險操作 |
-| `.btn-outline` | 查看、細節、低強度操作 |
-
-Homepage / Account UI 使用 `.ds-button` 系列：
-
-| Class | 用途 |
-|---|---|
-| `.ds-button--primary` | 首頁 CTA、登入/註冊送出 |
-| `.ds-button--secondary` | 次要 CTA |
-| `.ds-button--outline` | 邊框型 CTA |
-
-互動規則：
-
-- Hover 應只做輕量色彩變化或 `translateY(-1px)`。
-- Disabled 按鈕透明度約 `0.5` - `0.55`，不可保留 hover 效果。
-- 危險操作一定用紅色系，不與主要藍/青綠混用。
-
-### 5.2 Cards
-
-| 系統 | Radius | Shadow | 用途 |
-|---|---:|---|---|
-| Legacy `.card` | `10px` | `--shadow-sm` | 表單、列表、統計內容 |
-| DS `.ds-card` | `10px` | `0 8px 24px rgb(31 67 82 / 0.08)` | 首頁 feature、帳號 panel |
-| Modal `.modal-content` | `16px` | `--shadow-lg` | 對話框 |
-
-卡片應保持白底、清楚 border，不建議使用重度漸層或大面積裝飾陰影。
-
-### 5.3 Forms
-
-- Input 高度約 `40px` - `46px`。
-- Border 使用 `#e2e8f0` 或 `--ds-color-border`。
-- Focus 使用主色 border 加淡色 ring。
-- 錯誤訊息使用紅色，字重 600，位置靠近欄位。
-- 必填星號使用 `#ef4444`。
-
-### 5.4 Tables
-
-- 表頭背景使用 `#f8fafc`。
-- 表頭文字使用 `0.85rem`、700、次要灰色。
-- Row hover 使用極淡灰 `#f8fafc`。
-- 表格外層應有 border、圓角與水平 overflow。
-
-### 5.5 Badges
-
-Legacy 問卷狀態 badge：
-
-| Class | 背景 | 文字 | 用途 |
-|---|---:|---:|---|
-| `.badge-unpublished` | `#f1f5f9` | `#64748b` | 未發布 |
-| `.badge-notstarted` | `#fef3c7` | `#d97706` | 尚未開始 |
-| `.badge-inprogress` | `#dcfce7` | `#15803d` | 進行中 |
-| `.badge-ended` | `#fee2e2` | `#b91c1c` | 已結束 |
-
-DS badge 使用 `.ds-badge--accent`、`.ds-badge--success`、`.ds-badge--warning`、`.ds-badge--error`。
-
-## 6. 首頁視覺語言
-
-首頁走比較完整的產品介紹風格，但仍保持工具型可信感：
-
-- 主色是青綠 `#1f8196`，輔以 mint green `#35a995`。
-- 背景使用非常淡的青灰：`#f4f8fb`、`#edf6f8`、`#f6fafb`。
-- Hero 使用柔和漸層和問卷/圖表視覺 panel。
-- Feature card 圖示底色可用淡藍、淡綠、淡琥珀，但不可讓整頁變成單一色調。
-- CTA 區可使用深青綠漸層 `#17697c` 到 `#248fa0`。
-- Footer 使用深色 `#132931`，文字用低飽和淺青灰。
-
-## 7. 圖表與統計
-
-目前 Chart.js 色盤包含：
+視覺設計的核心目標為：
 
 ```text
-#4f6edb, #b6dc22, #555978, #ff9749,
-#18a5d1, #ec4899, #8b5cf6, #10b981,
-#64748b, #d97706
+Modern
+Clean
+Friendly
+Lightweight
+Professional
+Questionnaire SaaS Web Application
 ```
 
-使用規則：
+介面應保持：
 
-- 單一重點統計可用 `--primary` / `#3b82f6`。
-- 多選項圖表可使用上述高辨識色盤。
-- 圖表文字仍使用 `Plus Jakarta Sans`，12px 左右。
-- 圖表容器維持白底或淡灰底，避免彩色背景干擾資料判讀。
+- 清楚
+- 可信
+- 易讀
+- 易操作
+- 資訊層級明確
+- 表格容易掃描
+- 表單容易填寫
+- 錯誤與操作結果容易理解
 
-## 8. 無障礙與互動
+不追求過度華麗的行銷頁效果，也避免過度傳統、厚重的 ERP 後台感。
 
-- Focus visible 需保留，DS 系統使用 `--ds-shadow-focus` 或 accent outline。
-- 動畫只使用 160-200ms 的短 transition。
-- 已有 `prefers-reduced-motion: reduce` 支援，新增動畫時也需提供降動態處理。
-- 文字與背景需維持足夠對比，尤其是灰色輔助文字不得低於目前 `#64748b` / `#52616b` 的辨識度。
-- 表單錯誤不可只靠顏色，需搭配文字訊息。
+---
 
-## 9. 後續新增 UI 的建議
+# 2. Design Principles
 
-### Do
+整體設計遵循以下原則：
 
-- 優先使用既有 CSS variables，不直接新增相近色。
-- 管理頁使用 `.container`、`.card`、`.table`、`.btn`。
-- 首頁、登入、註冊、會員頁使用 `.ds-*` token。
-- 保持卡片 radius 在 6px - 10px，modal 可到 16px。
-- Empty state 使用 `--text-light` 搭配簡短行動提示。
+```text
+功能正確
+↓
+操作清楚
+↓
+資訊層級
+↓
+視覺一致
+↓
+細節與裝飾
+```
 
-### Do Not
+任何視覺修改不得破壞：
 
-- 不要為了單一頁面新增第三套主色。
-- 不要隨意把 legacy 管理頁整批改成 homepage style。
-- 不要移除 focus 樣式。
-- 不要用過重陰影或大面積高飽和背景。
-- 不要把錯誤、警告、成功狀態都用主色表示。
+- 原有功能
+- API 串接
+- 權限控制
+- 表單驗證
+- 問卷流程
+- 回答流程
+- Accessibility
 
-## 10. 快速參考
+視覺效果應服務功能，而不是讓裝飾凌駕資訊。
 
-| 類型 | 首選樣式 |
-|---|---|
-| 一般頁背景 | `--bg-main` 或 `--ds-color-background` |
-| 內容卡片 | 白底、淡 border、輕陰影 |
-| 主要操作 | `--primary` 或 `--ds-color-primary` |
-| 危險操作 | `--danger` / `--ds-color-error` |
-| 表單 focus | 主色 border + 淡色 ring |
-| 分隔線 | `--border` / `--ds-color-border` |
-| 字體 | Plus Jakarta Sans + system fallback |
-| 管理頁最大寬 | `1100px` |
-| 首頁最大寬 | `1120px` |
+---
+
+# 3. Current vs Target
+
+目前專案仍存在兩套主要設計語言。
+
+| Area                 | Current                                | Target                                         |
+| -------------------- | -------------------------------------- | ---------------------------------------------- |
+| Legacy 問卷／管理 UI | 藍色 `#3B82F6` 為主要操作色            | 統一使用 `#1F8196`                             |
+| Homepage／Account UI | 已使用接近品牌方向的 `--ds-*` 青綠系統 | 收斂成統一 Design Tokens                       |
+| Buttons              | `.btn-*` 與 `.ds-button-*` 並存        | 視覺統一，功能語意保留                         |
+| Cards                | Legacy 與 DS 樣式略有差異              | 統一 Surface／Radius／Shadow                   |
+| Forms                | Focus Color 與 spacing 不完全一致      | 統一 Primary Focus System                      |
+| Tables               | Legacy 系統為主                        | 保留易掃讀結構並統一 Token                     |
+| Typography           | Plus Jakarta Sans 為主要方向           | 統一 Typography Scale                          |
+| Charts               | 使用多組既有高辨識色                   | Primary 重點改為 `#1F8196`，多序列仍維持辨識度 |
+| Images               | 現有圖片風格未完全統一                 | Style Refresh 時統一重新生成                   |
+| Icons                | 可能存在不同來源或風格                 | 統一尺寸與視覺語言                             |
+
+## 原則
+
+Legacy 色碼可以存在於：
+
+```text
+Current State
+Migration Notes
+Historical Reference
+```
+
+但不得再被定義成新的品牌 Primary。
+
+---
+
+# 4. Brand Color
+
+## 4.1 Primary
+
+唯一品牌主色：
+
+```text
+#1F8196
+```
+
+CSS Token：
+
+```css
+--color-primary: #1f8196;
+```
+
+用途：
+
+- Primary Button
+- CTA
+- Active Navigation
+- Active Tab
+- Input Focus
+- Checkbox
+- Radio
+- Primary Icon
+- Link Highlight
+- Loading Indicator
+- Selected State
+- 主要統計強調
+- 主要品牌識別
+
+不得再新增第三套 Primary Color。
+
+---
+
+# 5. Color System
+
+## 5.1 Primary Palette
+
+```css
+:root {
+  --color-primary: #1f8196;
+  --color-primary-hover: #17697c;
+  --color-primary-active: #155e70;
+
+  --color-primary-light: #e3f2f6;
+  --color-primary-subtle: #f0f8fa;
+  --color-primary-border: #a8ccd4;
+}
+```
+
+| Token                    | Color     | Usage                 |
+| ------------------------ | --------- | --------------------- |
+| `--color-primary`        | `#1F8196` | Main CTA / Brand      |
+| `--color-primary-hover`  | `#17697C` | Hover                 |
+| `--color-primary-active` | `#155E70` | Active / Pressed      |
+| `--color-primary-light`  | `#E3F2F6` | Selected background   |
+| `--color-primary-subtle` | `#F0F8FA` | Soft primary surface  |
+| `--color-primary-border` | `#A8CCD4` | Primary-tinted border |
+
+---
+
+# 6. Neutral Palette
+
+```css
+:root {
+  --color-background: #f4f8fb;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f8fafc;
+
+  --color-text-primary: #17232c;
+  --color-text-secondary: #52616b;
+  --color-text-muted: #94a3b8;
+
+  --color-border: #d6e0e7;
+  --color-divider: #e2e8f0;
+
+  --color-disabled-bg: #f1f5f9;
+  --color-disabled-text: #94a3b8;
+}
+```
+
+## Usage
+
+### Background
+
+```text
+#F4F8FB
+```
+
+用於：
+
+- Page Background
+- Dashboard Background
+- Account Background
+- 大型 Section Background
+
+### Surface
+
+```text
+#FFFFFF
+```
+
+用於：
+
+- Cards
+- Forms
+- Tables
+- Dialogs
+- Navbar
+- Panels
+
+### Primary Text
+
+```text
+#17232C
+```
+
+用於：
+
+- H1
+- H2
+- Card Title
+- 主要資訊
+
+### Secondary Text
+
+```text
+#52616B
+```
+
+用於：
+
+- 描述
+- Metadata
+- Label
+- 輔助資訊
+
+---
+
+# 7. Semantic Colors
+
+Semantic Color 必須保持功能語意，不可全部改成 Primary。
+
+```css
+:root {
+  --color-success: #21875f;
+  --color-warning: #b7791f;
+  --color-danger: #c43d4b;
+  --color-info: #1f8196;
+}
+```
+
+| State   | Target    | Usage              |
+| ------- | --------- | ------------------ |
+| Success | `#21875F` | 儲存成功、發布成功 |
+| Warning | `#B7791F` | 草稿、提醒         |
+| Danger  | `#C43D4B` | Error、Delete      |
+| Info    | `#1F8196` | 一般資訊、重點     |
+
+## 禁止
+
+不要使用：
+
+```text
+Primary = Delete
+Primary = Error
+Primary = Warning
+```
+
+---
+
+# 8. Legacy Color Migration
+
+目前 Legacy UI 仍可能存在：
+
+```css
+--primary: #3b82f6;
+--primary-hover: #2563eb;
+--primary-light: #eff6ff;
+--border-focus: #3b82f6;
+```
+
+這些屬於：
+
+```text
+Legacy UI
+```
+
+未來 Style Refresh 時應逐步轉為：
+
+```css
+--primary: var(--color-primary);
+--primary-hover: var(--color-primary-hover);
+--primary-light: var(--color-primary-light);
+--border-focus: var(--color-primary);
+```
+
+禁止：
+
+```text
+一次無差別 Search & Replace 所有 #3B82F6
+```
+
+必須先確認該色彩實際語意。
+
+---
+
+# 9. Typography
+
+## 9.1 Font Family
+
+目前主要字體方向維持：
+
+```css
+font-family:
+  "Plus Jakarta Sans",
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  Roboto,
+  "Microsoft JhengHei",
+  sans-serif;
+```
+
+用途：
+
+```text
+English
+Numbers
+Traditional Chinese UI
+```
+
+若使用 Plus Jakarta Sans 無法覆蓋中文字元，中文字體自然由後續 system fallback 接管。
+
+不應因單一頁面另建完全不同 Font Family。
+
+---
+
+# 10. Typography Scale
+
+建議統一：
+
+| Token      |        Size |  Weight | Line Height | Usage              |
+| ---------- | ----------: | ------: | ----------: | ------------------ |
+| Display    |    `2.5rem` |     700 |        1.18 | Hero               |
+| H1         |   `1.75rem` |     700 |         1.3 | Page Title         |
+| H2         |    `1.5rem` |     700 |        1.35 | Section            |
+| H3         |  `1.125rem` |     700 |         1.4 | Card               |
+| Body       |      `1rem` |     400 |        1.65 | General Content    |
+| Body Small |  `0.875rem` |     400 |         1.5 | Supporting Content |
+| Caption    | `0.8125rem` | 400-600 |         1.5 | Metadata           |
+| Button     | `0.9375rem` |     600 |           1 | Button             |
+
+## 中文文案
+
+建議：
+
+```text
+新增問卷
+查看回答
+發布問卷
+儲存草稿
+查看統計
+```
+
+優於：
+
+```text
+進行問卷新增作業
+前往進行回答資料查看
+```
+
+文案應：
+
+- 短
+- 直接
+- 動詞優先
+- 容易掃讀
+
+---
+
+# 11. Spacing System
+
+統一 spacing scale：
+
+```css
+--space-1: 4px;
+--space-2: 8px;
+--space-3: 12px;
+--space-4: 16px;
+--space-5: 24px;
+--space-6: 32px;
+--space-7: 48px;
+--space-8: 64px;
+```
+
+避免大量新增：
+
+```text
+7px
+13px
+19px
+21px
+27px
+```
+
+等無規律間距。
+
+---
+
+# 12. Layout
+
+## Content Width
+
+一般管理與問卷操作：
+
+```css
+max-width: 1100px;
+```
+
+首頁／Landing Page：
+
+```css
+max-width: 1120px;
+```
+
+未來若統一，可收斂至單一：
+
+```css
+--layout-content-max-width: 1120px;
+```
+
+## Standard Page
+
+建議：
+
+```text
+Page
+└── Container
+    ├── Page Header
+    ├── Primary Action / Toolbar
+    └── Content
+        ├── Card
+        ├── Table
+        └── Form
+```
+
+---
+
+# 13. Border Radius
+
+統一：
+
+```css
+--radius-sm: 6px;
+--radius-md: 10px;
+--radius-lg: 16px;
+--radius-pill: 999px;
+```
+
+用途：
+
+| Token  | Usage                |
+| ------ | -------------------- |
+| `sm`   | Small Input / Badge  |
+| `md`   | Button / Card / Form |
+| `lg`   | Modal / Large Panel  |
+| `pill` | Badge / Chip         |
+
+一般 Card 不應使用過度巨大的圓角。
+
+---
+
+# 14. Shadows
+
+```css
+--shadow-sm: 0 2px 8px rgb(31 67 82 / 0.06);
+--shadow-md: 0 8px 24px rgb(31 67 82 / 0.08);
+--shadow-lg: 0 16px 40px rgb(31 67 82 / 0.12);
+```
+
+使用：
+
+| Shadow | Usage                     |
+| ------ | ------------------------- |
+| SM     | Card                      |
+| MD     | Dropdown / Floating Panel |
+| LG     | Modal                     |
+
+禁止：
+
+- 每個 Input 都加 Shadow
+- Heavy Floating Effect
+- 過度立體化
+
+---
+
+# 15. Buttons
+
+## Primary
+
+```text
+Background: #1F8196
+Hover: #17697C
+Active: #155E70
+Text: #FFFFFF
+```
+
+適用：
+
+- 儲存
+- 建立
+- 發布
+- 登入
+- 註冊
+- 主要 CTA
+
+## Secondary
+
+適用：
+
+- 返回
+- 取消
+- 次要操作
+
+視覺：
+
+```text
+White / Neutral Surface
+Neutral Border
+Primary or Secondary Text
+```
+
+## Ghost
+
+用於低強度操作：
+
+- 查看
+- 次要 Navigation
+- Table Actions
+
+## Danger
+
+必須使用：
+
+```text
+Danger Red
+```
+
+用於：
+
+- 刪除
+- 永久移除
+- 高風險操作
+
+不得使用 Primary Teal 表示刪除。
+
+---
+
+# 16. Button States
+
+所有 Buttons 需定義：
+
+```text
+Default
+Hover
+Active
+Focus
+Disabled
+Loading
+```
+
+Hover 可使用：
+
+```css
+transform: translateY(-1px);
+```
+
+但動畫應輕量。
+
+Disabled：
+
+```text
+不可保留 Hover
+不可顯示 pointer cursor
+必須明顯降低操作感
+```
+
+---
+
+# 17. Forms
+
+包含：
+
+- Input
+- Textarea
+- Select
+- Checkbox
+- Radio
+- Date
+- Search
+- Read-only
+
+## Input
+
+建議高度：
+
+```text
+40px - 46px
+```
+
+Border：
+
+```text
+#D6E0E7
+```
+
+Focus：
+
+```text
+#1F8196
+```
+
+搭配 Primary Light Focus Ring。
+
+例如：
+
+```css
+input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(31 129 150 / 0.12);
+}
+```
+
+---
+
+# 18. Validation
+
+Validation Error：
+
+```text
+Danger Color
+＋
+文字說明
+```
+
+禁止只顯示紅框而沒有文字。
+
+例如：
+
+```text
+請輸入有效 Email
+```
+
+優於：
+
+```text
+格式錯誤
+```
+
+Required Mark：
+
+```text
+Danger
+```
+
+---
+
+# 19. Cards
+
+統一：
+
+```text
+Background: White
+Border: Subtle
+Radius: 10px
+Shadow: SM
+Padding: 24px
+```
+
+適用：
+
+- Questionnaire Card
+- Form Section
+- Dashboard Summary
+- Statistics
+- Member Profile
+
+避免：
+
+```text
+Card 裡再塞很多視覺上完全一樣的 Card
+```
+
+除非資訊階層確實需要。
+
+---
+
+# 20. Tables
+
+適用：
+
+- 問卷管理
+- 回答列表
+- ADMIN
+- 會員管理資料
+
+## Header
+
+```text
+Soft Background
+Bold Label
+Secondary Text
+```
+
+## Row
+
+```text
+White
+Subtle Divider
+```
+
+## Hover
+
+```text
+#F8FAFC
+```
+
+## Empty State
+
+不能只有：
+
+```text
+No data
+```
+
+建議：
+
+```text
+目前沒有回答資料。
+問卷收到填答後會顯示在這裡。
+```
+
+---
+
+# 21. Badges
+
+狀態色應保持 Semantic。
+
+## Draft / Unpublished
+
+Neutral。
+
+## Not Started
+
+Warning。
+
+## In Progress
+
+Success。
+
+## Ended
+
+Danger / Muted Danger。
+
+Badge 不應全部使用 Primary。
+
+---
+
+# 22. Navbar
+
+Navbar 應保持：
+
+```text
+Simple
+Predictable
+Desktop-oriented
+Role-aware
+```
+
+## Active
+
+```text
+#1F8196
+```
+
+## Inactive
+
+```text
+Secondary Text
+```
+
+Guest／MEMBER／ADMIN 可以顯示不同導覽功能，但視覺系統應相同。
+
+不要因不同 Role 建立三種完全不同 Navbar Style。
+
+---
+
+# 23. Homepage
+
+Homepage 可以比管理介面具有更多品牌感。
+
+## Direction
+
+Primary：
+
+```text
+#1F8196
+```
+
+Accent 可使用：
+
+```text
+#35A995
+```
+
+背景：
+
+```text
+#F4F8FB
+#EDF6F8
+#F6FAFB
+```
+
+CTA Gradient 如需要可使用：
+
+```text
+#17697C
+→
+#248FA0
+```
+
+Footer 可維持：
+
+```text
+#132931
+```
+
+首頁仍應避免：
+
+- Heavy Animation
+- Full-page Neon Gradient
+- Overdone Glassmorphism
+
+---
+
+# 24. Icons
+
+未來統一：
+
+```text
+Icon Family
+Icon Size
+Stroke / Fill Style
+Icon + Label Gap
+```
+
+推薦尺寸：
+
+```text
+16px
+20px
+24px
+```
+
+不要在同一操作類別中混用：
+
+```text
+Emoji
+SVG
+Unicode
+多種 Icon Library
+```
+
+除非有明確理由。
+
+Icon-only Button 必須提供：
+
+```html
+aria-label
+```
+
+---
+
+# 25. Charts & Statistics
+
+目前多色 Chart Palette 可以繼續存在，因為多系列圖表需要辨識度。
+
+Primary 強調色應統一：
+
+```text
+#1F8196
+```
+
+推薦圖表起始 Palette：
+
+```text
+#1F8196
+#35A995
+#4F6EDB
+#B7791F
+#C43D4B
+#8B5CF6
+#EC4899
+#64748B
+```
+
+## 規則
+
+單一 Dataset：
+
+```text
+優先 #1F8196
+```
+
+多 Dataset：
+
+```text
+保持色彩辨識
+```
+
+不要為了品牌一致把所有 Series 都改成相同青綠。
+
+Chart Text：
+
+```text
+Plus Jakarta Sans / System Fallback
+約 12px
+```
+
+---
+
+# 26. Images & Illustrations
+
+Style Refresh 時可以重新生成：
+
+- Hero
+- Banner
+- Illustration
+- Empty State
+- Decorative Background
+- Feature Image
+
+## Target Image Style
+
+```text
+Modern
+Clean
+Friendly
+Lightweight
+Professional
+Questionnaire SaaS
+```
+
+圖片配色應與：
+
+```text
+#1F8196
+```
+
+協調。
+
+可以搭配：
+
+```text
+Soft Teal
+Mint
+Light Blue-gray
+White
+Muted Neutral
+```
+
+---
+
+# 27. Image Generation Rules
+
+重新產圖時：
+
+## Do
+
+- 保持相同 Illustration Family
+- 使用相近 Lighting
+- 使用相近線條粗細
+- 使用統一 Saturation
+- 使用 `#1F8196` 作品牌視覺線索
+- 保留 UI 主內容閱讀性
+
+## Don't
+
+避免：
+
+```text
+Cyberpunk
+Heavy Neon
+過度 Cartoon
+過度 3D
+Heavy Glassmorphism
+大量高飽和 Gradient
+每個頁面使用完全不同藝術風格
+```
+
+---
+
+# 28. Motion
+
+Transition：
+
+```text
+160ms - 200ms
+```
+
+建議：
+
+```css
+transition:
+  color 180ms ease,
+  background-color 180ms ease,
+  border-color 180ms ease,
+  box-shadow 180ms ease,
+  transform 180ms ease;
+```
+
+動畫應：
+
+```text
+快速
+輕量
+有目的
+```
+
+不要加入純裝飾性的長動畫。
+
+---
+
+# 29. Reduced Motion
+
+必須保留：
+
+```css
+@media (prefers-reduced-motion: reduce);
+```
+
+降低或移除非必要動畫。
+
+---
+
+# 30. Accessibility
+
+## Contrast
+
+文字必須保持足夠辨識度。
+
+特別避免：
+
+```text
+過淺 Gray Text
+Primary Light Background + 過淺 Text
+```
+
+## Focus
+
+Keyboard Focus 必須清楚可見。
+
+Focus 不得被：
+
+```css
+outline: none;
+```
+
+直接移除而沒有替代方案。
+
+## Error
+
+不得只靠顏色傳達。
+
+## Icons
+
+Icon-only Action：
+
+```text
+需要 aria-label
+```
+
+## Heading
+
+保持：
+
+```text
+H1
+→ H2
+→ H3
+```
+
+合理層級。
+
+---
+
+# 31. Responsive Principles
+
+目前主要 Target：
+
+```text
+Desktop Web Application
+```
+
+桌面流程是第一優先。
+
+但 Layout 原則仍需：
+
+- 避免不必要固定寬度
+- Table 可使用 horizontal overflow
+- Card 不超出 Container
+- Form 不因較窄畫面完全失效
+
+Mobile-specific redesign 可獨立處理，不影響 Desktop Design System。
+
+---
+
+# 32. Design Tokens
+
+建議最終收斂成：
+
+```css
+:root {
+  /* Brand */
+  --color-primary: #1f8196;
+  --color-primary-hover: #17697c;
+  --color-primary-active: #155e70;
+  --color-primary-light: #e3f2f6;
+  --color-primary-subtle: #f0f8fa;
+  --color-primary-border: #a8ccd4;
+
+  /* Neutral */
+  --color-background: #f4f8fb;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f8fafc;
+
+  --color-text-primary: #17232c;
+  --color-text-secondary: #52616b;
+  --color-text-muted: #94a3b8;
+
+  --color-border: #d6e0e7;
+  --color-divider: #e2e8f0;
+
+  /* Semantic */
+  --color-success: #21875f;
+  --color-warning: #b7791f;
+  --color-danger: #c43d4b;
+  --color-info: #1f8196;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgb(31 67 82 / 0.06);
+  --shadow-md: 0 8px 24px rgb(31 67 82 / 0.08);
+  --shadow-lg: 0 16px 40px rgb(31 67 82 / 0.12);
+
+  /* Layout */
+  --content-max-width: 1120px;
+
+  /* Motion */
+  --transition-fast: 160ms ease;
+  --transition-normal: 180ms ease;
+  --transition-slow: 200ms ease;
+}
+```
+
+---
+
+# 33. Component Migration Strategy
+
+未來全站 Style Refresh 應採：
+
+```text
+Token
+→ Global Components
+→ Shared Components
+→ Pages
+→ Images
+→ Visual QA
+```
+
+而不是：
+
+```text
+Page A 改一半
+→ Page B 換另一套
+→ Page C 自己新增 Color
+```
+
+---
+
+# 34. Recommended Refresh Order
+
+## Phase 1 — Foundation
+
+1. 建立 Global Design Tokens
+2. Legacy Primary 對應至 `#1F8196`
+3. Typography
+4. Spacing
+5. Radius
+6. Shadow
+
+## Phase 2 — Shared Components
+
+7. Buttons
+8. Inputs
+9. Select
+10. Checkbox／Radio
+11. Cards
+12. Badges
+13. Tables
+14. Alerts
+15. Modal
+
+## Phase 3 — Navigation
+
+16. Navbar
+17. Page Header
+18. Tabs
+19. Pagination
+
+## Phase 4 — Pages
+
+20. Homepage
+21. Login
+22. Register
+23. Member
+24. Public Quiz List
+25. Quiz Fill
+26. My Questionnaires
+27. Questionnaire Editor
+28. Response List
+29. Response Detail
+30. Statistics
+31. ADMIN
+
+## Phase 5 — Visual Assets
+
+32. Hero
+33. Illustration
+34. Empty State
+35. Feature Images
+
+## Phase 6 — QA
+
+36. Color Consistency
+37. Typography
+38. Spacing
+39. Components
+40. Accessibility
+41. Console
+42. Main User Flows
+
+---
+
+# 35. Do
+
+- 使用 `#1F8196` 作為唯一 Brand Primary。
+- 優先使用 Design Tokens。
+- 新增 UI 時先檢查是否已有相同元件。
+- 保持 Semantic Color 意義。
+- 保持表格與管理介面的掃讀效率。
+- 保持 Homepage 的品牌感。
+- 保持錯誤訊息清楚。
+- 保持 Focus Visible。
+- 統一 Images／Illustrations 的風格。
+- Style Refresh 時一次有系統地處理。
+
+---
+
+# 36. Don't
+
+不要：
+
+- 新增第三套 Primary。
+- 把所有色彩全部變成青綠。
+- 把 Warning／Danger／Success 改成 Primary。
+- 任意新增接近但不同的 Hex。
+- 每個 Component 自己發明 Radius。
+- 使用大量不同 Shadow。
+- 為單一頁面加入完全不同 Font。
+- 使用過度 Neon。
+- 使用 Heavy Cyberpunk。
+- 使用大量 Glassmorphism。
+- 使用過度複雜 Animation。
+- 為視覺理由破壞正常業務邏輯。
+
+---
+
+# 37. Quick Reference
+
+| Category              | Standard                                 |
+| --------------------- | ---------------------------------------- |
+| Brand Primary         | `#1F8196`                                |
+| Primary Hover         | `#17697C`                                |
+| Primary Active        | `#155E70`                                |
+| Background            | `#F4F8FB`                                |
+| Surface               | `#FFFFFF`                                |
+| Text Primary          | `#17232C`                                |
+| Text Secondary        | `#52616B`                                |
+| Border                | `#D6E0E7`                                |
+| Success               | `#21875F`                                |
+| Warning               | `#B7791F`                                |
+| Danger                | `#C43D4B`                                |
+| Font                  | Plus Jakarta Sans + System Fallback      |
+| Card Radius           | `10px`                                   |
+| Modal Radius          | `16px`                                   |
+| Standard Card Padding | `24px`                                   |
+| Content Max Width     | `1120px`                                 |
+| Standard Transition   | `160–200ms`                              |
+| Main UI Direction     | Modern / Clean / Friendly / Professional |
+
+---
+
+# 38. Source of Truth
+
+日後若出現以下衝突：
+
+```text
+舊 CSS
+舊 Prompt
+AGENTS.md
+新 Component
+AI 產生 UI
+圖片生成 Prompt
+```
+
+視覺設計原則應以：
+
+```text
+style-guides.md
+```
+
+為主要依據。
+
+其中最不可變更的品牌規則為：
+
+```text
+Primary / Brand Color = #1F8196
+```
+
+若確實需要更換品牌主色，必須由使用者明確提出，不得由 Agent、Codex 或其他 AI 自行決定。

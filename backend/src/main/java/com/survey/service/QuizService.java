@@ -7,7 +7,6 @@ import com.survey.enums.QuizStatus;
 import com.survey.repository.QuizRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +22,14 @@ public class QuizService {
     private final QuizManagementService quizManagementService;
 
     @Transactional(readOnly = true)
-    public Page<QuizListDto> getFrontQuizzes(String name, LocalDate startDate, LocalDate endDate, int page, int size) {
+    public Page<QuizListDto> getFrontQuizzes(String name, LocalDate startDate, LocalDate endDate,
+                                             int page, int size, String sortBy, String sortDirection) {
         quizManagementService.validateDateRange(startDate, endDate);
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = ListPageableFactory.quizzes(page, size, sortBy, sortDirection);
         Page<Quiz> quizzes = quizRepository.searchPublishedQuizzes(name, startDate, endDate, pageable);
 
         return quizzes.map(quiz -> {
-            QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+            QuizStatus status = quizManagementService.effectiveStatus(quiz);
             boolean canFill = (status == QuizStatus.IN_PROGRESS);
             boolean canViewStats = (status == QuizStatus.IN_PROGRESS || status == QuizStatus.ENDED);
 
@@ -39,6 +39,7 @@ public class QuizService {
                     .startDate(quiz.getStartDate())
                     .endDate(quiz.getEndDate())
                     .isPublished(quiz.getIsPublished())
+                    .adminStatusOverride(quiz.getAdminStatusOverride())
                     .status(status)
                     .statusLabel(status.getLabel())
                     .canFill(canFill)
@@ -52,7 +53,7 @@ public class QuizService {
         Quiz quiz = quizRepository.findByIdAndIsPublishedTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("問卷不存在"));
 
-        QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+        QuizStatus status = quizManagementService.effectiveStatus(quiz);
         List<QuestionSaveDto> questionDtos = quizManagementService.loadQuestions(id);
 
         return QuizDetailDto.builder()
@@ -62,6 +63,7 @@ public class QuizService {
                 .startDate(quiz.getStartDate())
                 .endDate(quiz.getEndDate())
                 .isPublished(quiz.getIsPublished())
+                .adminStatusOverride(quiz.getAdminStatusOverride())
                 .status(status)
                 .statusLabel(status.getLabel())
                 .questions(questionDtos)

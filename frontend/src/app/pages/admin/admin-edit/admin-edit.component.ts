@@ -1,4 +1,5 @@
 import { Component, OnInit } from "@angular/core";
+import { CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 import { ActivatedRoute, Router } from "@angular/router";
 import { AdminQuizService } from "../../../core/services/admin-quiz.service";
 import { MemberQuizService } from "../../../core/services/member-quiz.service";
@@ -10,6 +11,10 @@ import {
   getQuestionTypeLabel,
 } from "../../../core/models/survey.model";
 import { AuthService } from "../../../core/services/auth.service";
+
+type QuestionSortField = "order" | "name" | "type" | "required";
+type SortDirection = "asc" | "desc";
+type RequiredFilter = "" | "required" | "optional";
 
 @Component({
   selector: "app-admin-edit",
@@ -35,6 +40,12 @@ import { AuthService } from "../../../core/services/auth.service";
           class="tab-btn"
           [class.active]="currentTab === 2"
           (click)="switchTab(2)"
+          [disabled]="highestUnlockedTab < 2"
+          [attr.title]="
+            highestUnlockedTab < 2
+              ? '請先完成問卷基本設定，並按下「下一步（題目設計）」。'
+              : null
+          "
         >
           2. 題目設計
         </button>
@@ -42,6 +53,14 @@ import { AuthService } from "../../../core/services/auth.service";
           class="tab-btn"
           [class.active]="currentTab === 3"
           (click)="switchTab(3)"
+          [disabled]="highestUnlockedTab < 3 || !canPreviewQuestions"
+          [attr.title]="
+            highestUnlockedTab < 3
+              ? '請先完成題目設定，並按下「下一步（預覽確認）」。'
+              : !canPreviewQuestions
+                ? '請至少新增一題，並將至少一題設為必填後再預覽。'
+                : null
+          "
         >
           3. 題目確認與儲存
         </button>
@@ -49,14 +68,16 @@ import { AuthService } from "../../../core/services/auth.service";
 
       <div
         *ngIf="errorMessage"
-        style="color: #ef4444; font-weight: 600; margin-bottom: 16px; background: #fee2e2; padding: 10px 16px; border-radius: 6px;"
+        style="color: var(--danger); font-weight: 600; margin-bottom: 16px; background: color-mix(in srgb, var(--danger) 10%, white); padding: 10px 16px; border-radius: 6px;"
       >
         {{ errorMessage }}
       </div>
 
       <!-- TAB 1: SURVEY INFORMATION -->
       <div *ngIf="currentTab === 1" class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 20px; color: #1e293b;">
+        <h3
+          style="font-size: 1.1rem; margin-bottom: 20px; color: var(--teal-900);"
+        >
           問卷內容相關設定
         </h3>
 
@@ -64,7 +85,7 @@ import { AuthService } from "../../../core/services/auth.service";
           style="display: flex; flex-direction: column; gap: 16px; max-width: 680px;"
         >
           <div class="form-group">
-            <label>問卷名稱 <span style="color: #ef4444;">*</span></label>
+            <label>問卷名稱 <span style="color: var(--danger);">*</span></label>
             <input
               type="text"
               class="form-control"
@@ -78,7 +99,7 @@ import { AuthService } from "../../../core/services/auth.service";
           </div>
 
           <div class="form-group">
-            <label>問卷說明 <span style="color: #ef4444;">*</span></label>
+            <label>問卷說明 <span style="color: var(--danger);">*</span></label>
             <textarea
               class="form-control"
               [(ngModel)]="description"
@@ -94,7 +115,9 @@ import { AuthService } from "../../../core/services/auth.service";
             style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;"
           >
             <div class="form-group">
-              <label>開始時間 <span style="color: #ef4444;">*</span></label>
+              <label
+                >開始時間 <span style="color: var(--danger);">*</span></label
+              >
               <input
                 type="date"
                 class="form-control"
@@ -107,7 +130,9 @@ import { AuthService } from "../../../core/services/auth.service";
             </div>
 
             <div class="form-group">
-              <label>結束時間 <span style="color: #ef4444;">*</span></label>
+              <label
+                >結束時間 <span style="color: var(--danger);">*</span></label
+              >
               <input
                 type="date"
                 class="form-control"
@@ -127,7 +152,16 @@ import { AuthService } from "../../../core/services/auth.service";
           <button class="btn btn-outline" (click)="onReturnToList()">
             取消
           </button>
-          <button class="btn btn-primary" (click)="goToTab2()">
+          <button
+            class="btn btn-primary"
+            (click)="goToTab2()"
+            [disabled]="!isBasicSettingsComplete"
+            [attr.title]="
+              !isBasicSettingsComplete
+                ? '請先完整填寫問卷名稱、問卷說明與有效的開放日期。'
+                : null
+            "
+          >
             下一步 (題目設計) &raquo;
           </button>
         </div>
@@ -139,9 +173,11 @@ import { AuthService } from "../../../core/services/auth.service";
           <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;"
           >
-            <h3 style="font-size: 1.1rem; color: #1e293b;">設計問題與選項</h3>
+            <h3 style="font-size: 1.1rem; color: var(--teal-900);">
+              設計問題與選項
+            </h3>
             <button class="btn btn-primary" (click)="openAddQuestionModal()">
-              ➕ 新增問題
+              📄 新增問題
             </button>
           </div>
 
@@ -157,42 +193,183 @@ import { AuthService } from "../../../core/services/auth.service";
                       (change)="toggleSelectAllQuestions()"
                     />
                   </th>
-                  <th>內容 (問題名稱)</th>
-                  <th style="width: 100px;">種類</th>
-                  <th style="width: 80px; text-align: center;">必填</th>
+                  <th
+                    style="width: 128px; text-align: center;"
+                    [attr.aria-sort]="questionAriaSort('order')"
+                  >
+                    <button
+                      type="button"
+                      class="sortable-header-button"
+                      (click)="sortQuestions('order')"
+                    >
+                      順序
+                      <span aria-hidden="true">{{
+                        questionSortIndicator("order")
+                      }}</span>
+                    </button>
+                  </th>
+                  <th [attr.aria-sort]="questionAriaSort('name')">
+                    <button
+                      type="button"
+                      class="sortable-header-button"
+                      (click)="sortQuestions('name')"
+                    >
+                      內容 (問題名稱)
+                      <span aria-hidden="true">{{
+                        questionSortIndicator("name")
+                      }}</span>
+                    </button>
+                  </th>
+                  <th
+                    style="width: 100px;"
+                    [attr.aria-sort]="questionAriaSort('type')"
+                  >
+                    <button
+                      type="button"
+                      class="sortable-header-button"
+                      (click)="sortQuestions('type')"
+                    >
+                      種類
+                      <span aria-hidden="true">{{
+                        questionSortIndicator("type")
+                      }}</span>
+                    </button>
+                  </th>
+                  <th
+                    style="width: 80px; text-align: center;"
+                    [attr.aria-sort]="questionAriaSort('required')"
+                  >
+                    <button
+                      type="button"
+                      class="sortable-header-button"
+                      (click)="sortQuestions('required')"
+                    >
+                      必填
+                      <span aria-hidden="true">{{
+                        questionSortIndicator("required")
+                      }}</span>
+                    </button>
+                  </th>
                   <th style="width: 100px; text-align: center;">編輯</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr *ngFor="let q of questions; let i = index">
+              <tbody
+                class="question-drop-list"
+                cdkDropList
+                [cdkDropListData]="questions"
+                [cdkDropListDisabled]="!canDragQuestions"
+                (cdkDropListDropped)="onQuestionDrop($event)"
+              >
+                <tr
+                  *ngFor="
+                    let row of visibleQuestionRows;
+                    trackBy: trackQuestionRow
+                  "
+                  class="question-row"
+                  cdkDrag
+                  [cdkDragData]="row.question"
+                  [cdkDragDisabled]="!canDragQuestions"
+                >
                   <td style="text-align: center;">
                     <input
                       type="checkbox"
-                      [checked]="selectedQuestionIndices.includes(i)"
-                      (change)="toggleSelectQuestion(i)"
+                      [checked]="
+                        selectedQuestionIndices.includes(row.originalIndex)
+                      "
+                      (change)="toggleSelectQuestion(row.originalIndex)"
                     />
                   </td>
-                  <td>{{ q.questName }}</td>
-                  <td>{{ getTypeLabel(q.type) }}</td>
+                  <td class="question-order-cell">
+                    <span
+                      class="question-drag-handle"
+                      cdkDragHandle
+                      [class.question-drag-handle--disabled]="
+                        !canDragQuestions
+                      "
+                      role="button"
+                      [attr.tabindex]="canDragQuestions ? 0 : -1"
+                      [attr.aria-disabled]="!canDragQuestions"
+                      [attr.aria-label]="
+                        '拖曳調整第 ' +
+                        (row.originalIndex + 1) +
+                        ' 題順序，也可使用上下方向鍵'
+                      "
+                      [attr.title]="
+                        canDragQuestions
+                          ? '拖曳調整順序，或使用上下方向鍵'
+                          : '重置篩選並切回順序升冪後可拖曳'
+                      "
+                      (keydown)="
+                        onQuestionOrderKeydown($event, row.originalIndex)
+                      "
+                    >
+                      <span aria-hidden="true">⠿</span>
+                    </span>
+                    <span class="question-order-label"
+                      >第 {{ row.originalIndex + 1 }} 題</span
+                    >
+                  </td>
+                  <td>{{ row.question.questName }}</td>
+                  <td>{{ getTypeLabel(row.question.type) }}</td>
                   <td style="text-align: center;">
-                    <input type="checkbox" [checked]="q.need" disabled />
+                    <input
+                      type="checkbox"
+                      [checked]="row.question.need"
+                      disabled
+                    />
                   </td>
                   <td style="text-align: center;">
                     <button
                       class="btn btn-outline"
                       style="padding: 2px 8px; font-size: 0.8rem;"
-                      (click)="editQuestion(i)"
+                      (click)="editQuestion(row.originalIndex)"
                     >
                       編輯
                     </button>
+                    <ng-template cdkDragPreview [matchSize]="true">
+                      <div class="question-drag-preview">
+                        <span
+                          class="question-drag-handle question-drag-preview-handle"
+                          aria-hidden="true"
+                          >⠿</span
+                        >
+                        <strong>第 {{ row.originalIndex + 1 }} 題</strong>
+                        <span class="question-drag-preview-title">{{
+                          row.question.questName
+                        }}</span>
+                        <span class="question-drag-preview-meta">
+                          {{ getTypeLabel(row.question.type) }} ·
+                          {{ row.question.need ? "必填" : "選填" }}
+                        </span>
+                      </div>
+                    </ng-template>
                   </td>
                 </tr>
                 <tr *ngIf="questions.length === 0">
                   <td
-                    colspan="5"
-                    style="text-align: center; color: #94a3b8; padding: 32px;"
+                    colspan="6"
+                    style="text-align: center; color: var(--text-light); padding: 32px;"
                   >
-                    尚無建立任何問題，請點擊右上角「新增問題」按鈕。
+                    <div class="empty-state-visual">
+                      <img
+                        src="assets/illustrations/brainstorming-13.png"
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      <span>尚無建立任何問題，請點擊右上角「新增問題」按鈕。</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr
+                  *ngIf="
+                    questions.length > 0 && visibleQuestionRows.length === 0
+                  "
+                >
+                  <td
+                    colspan="6"
+                    style="text-align: center; color: var(--text-light); padding: 32px;"
+                  >
+                    沒有符合目前篩選條件的題目。
                   </td>
                 </tr>
               </tbody>
@@ -213,50 +390,94 @@ import { AuthService } from "../../../core/services/auth.service";
               <button class="btn btn-outline" (click)="switchTab(1)">
                 &laquo; 上一步
               </button>
-              <button class="btn btn-primary" (click)="goToTab3()">
+              <button
+                class="btn btn-secondary"
+                (click)="onSave(false)"
+                [disabled]="
+                  saving ||
+                  (!isAdminArea && isPublished && !canPreviewQuestions)
+                "
+              >
+                {{
+                  !isAdminArea && isPublished ? "💾 儲存變更" : "💾 儲存草稿"
+                }}
+              </button>
+              <button
+                class="btn btn-primary"
+                (click)="goToTab3()"
+                [disabled]="!canPreviewQuestions"
+                [attr.title]="
+                  !canPreviewQuestions
+                    ? '請至少新增一題，並將至少一題設為必填後再預覽。'
+                    : null
+                "
+              >
                 下一步 (預覽確認) &raquo;
               </button>
             </div>
           </div>
+          <p
+            *ngIf="!canPreviewQuestions"
+            class="question-step-hint"
+            role="status"
+          >
+            {{
+              !isAdminArea && isPublished
+                ? "已發布問卷至少需保留一題必填題目，請修正後再儲存或預覽。"
+                : "請至少新增一題且為必填後再進行預覽確認；目前仍可先儲存草稿。"
+            }}
+          </p>
         </div>
       </div>
 
       <!-- TAB 3: CONFIRMATION & PUBLISH/SAVE DRAFT -->
       <div *ngIf="currentTab === 3" class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 16px; color: #1e293b;">
+        <h3
+          style="font-size: 1.1rem; margin-bottom: 16px; color: var(--teal-900);"
+        >
           問卷全覽預覽 (題目確認頁)
         </h3>
 
         <div
-          style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;"
+          style="background: var(--teal-50); padding: 16px; border-radius: 8px; border: 1px solid var(--primary); margin-bottom: 24px;"
         >
-          <h2 style="font-size: 1.3rem; font-weight: 700; color: #0f172a;">
+          <h2
+            style="font-size: 1.3rem; font-weight: 700; color: var(--teal-950);"
+          >
             {{ name }}
           </h2>
-          <p style="color: #64748b; margin-top: 4px;">{{ description }}</p>
-          <div style="margin-top: 8px; font-size: 0.85rem; color: #475569;">
+          <p style="color: var(--text-muted); margin-top: 4px;">
+            {{ description }}
+          </p>
+          <div
+            style="margin-top: 8px; font-size: 0.85rem; color: var(--teal-800);"
+          >
             預定開放期間：<strong>{{ startDate }}</strong> 至
             <strong>{{ endDate }}</strong>
           </div>
         </div>
 
         <h4
-          style="font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: #334155;"
+          style="font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--teal-900);"
         >
           題目與選項清單 ({{ questions.length }} 題)
         </h4>
 
         <div
           *ngFor="let q of questions; let i = index"
-          style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;"
+          style="background: #ffffff; border: 1px solid var(--primary); border-radius: 8px; padding: 16px; margin-bottom: 16px;"
         >
-          <div style="font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+          <div
+            style="font-weight: 700; color: var(--teal-950); margin-bottom: 8px;"
+          >
             {{ i + 1 }}. {{ q.questName }}
-            <span *ngIf="q.need" style="color: #ef4444; font-size: 0.85rem;"
+            <span
+              *ngIf="q.need"
+              style="color: var(--danger); font-size: 0.85rem;"
               >(必填)</span
             >
             <span
-              style="font-weight: 400; font-size: 0.85rem; color: #64748b; margin-left: 8px;"
+              style="font-weight: 400; font-size: 0.85rem; color: var(--text-muted); margin-left: 8px;"
             >
               [{{ getTypeLabel(q.type) }}]
             </span>
@@ -265,14 +486,14 @@ import { AuthService } from "../../../core/services/auth.service";
           <div *ngIf="q.type !== 'T'" style="padding-left: 12px;">
             <div
               *ngFor="let opt of q.options"
-              style="color: #475569; font-size: 0.9rem; margin-bottom: 4px;"
+              style="color: var(--teal-800); font-size: 0.9rem; margin-bottom: 4px;"
             >
               • {{ opt.optionName }}
             </div>
           </div>
           <div
             *ngIf="q.type === 'T'"
-            style="padding-left: 12px; color: #94a3b8; font-style: italic; font-size: 0.9rem;"
+            style="padding-left: 12px; color: var(--text-light); font-style: italic; font-size: 0.9rem;"
           >
             [使用者簡答輸入框]
           </div>
@@ -291,14 +512,22 @@ import { AuthService } from "../../../core/services/auth.service";
               (click)="onSave(false)"
               [disabled]="saving"
             >
-              💾 僅儲存 (存草稿)
+              {{ !isAdminArea && isPublished ? "💾 儲存變更" : "💾 儲存" }}
             </button>
+            <span *ngIf="!isAdminArea" class="publish-waiting-note">
+              {{
+                isPublished
+                  ? "儲存後維持管理員已發布狀態"
+                  : "按下儲存後將等待管理員發布 !!"
+              }}
+            </span>
             <button
-              class="btn btn-primary"
+              *ngIf="isAdminArea"
+              class="btn btn-primary publish-button"
               (click)="onSave(true)"
               [disabled]="saving"
             >
-              🚀 儲存並發佈
+              🚀 儲存並發布
             </button>
           </div>
         </div>
@@ -318,7 +547,9 @@ import { AuthService } from "../../../core/services/auth.service";
 
           <div style="display: flex; flex-direction: column; gap: 14px;">
             <div class="form-group">
-              <label>問題名稱 <span style="color: #ef4444;">*</span></label>
+              <label
+                >問題名稱 <span style="color: var(--danger);">*</span></label
+              >
               <input
                 type="text"
                 class="form-control"
@@ -333,9 +564,9 @@ import { AuthService } from "../../../core/services/auth.service";
               <div class="form-group">
                 <label>題型種類</label>
                 <select class="form-control" [(ngModel)]="modalType">
-                  <option value="Q">單選 (Q)</option>
-                  <option value="M">多選 (M)</option>
-                  <option value="T">文字 (T)</option>
+                  <option value="Q">單選題</option>
+                  <option value="M">多選題</option>
+                  <option value="T">文字題</option>
                 </select>
               </div>
 
@@ -351,7 +582,7 @@ import { AuthService } from "../../../core/services/auth.service";
             <!-- Options Section for Choice Questions (Q/M) -->
             <div *ngIf="modalType !== 'T'" style="margin-top: 8px;">
               <label
-                style="font-weight: 600; color: #475569; font-size: 0.9rem; margin-bottom: 8px; display: block;"
+                style="font-weight: 600; color: var(--teal-800); font-size: 0.9rem; margin-bottom: 8px; display: block;"
               >
                 選項列表 (目前 {{ modalOptions.length }} 個選項)
               </label>
@@ -369,7 +600,7 @@ import { AuthService } from "../../../core/services/auth.service";
                 />
                 <button
                   class="btn btn-outline"
-                  style="padding: 4px 8px; color: #ef4444;"
+                  style="padding: 4px 8px; color: var(--danger);"
                   (click)="removeModalOption(optIdx)"
                   [disabled]="modalOptions.length <= 1"
                 >
@@ -399,19 +630,180 @@ import { AuthService } from "../../../core/services/auth.service";
       </div>
     </div>
   `,
+  styles: [
+    `
+      .tab-btn:disabled {
+        color: var(--text-light);
+        cursor: not-allowed;
+      }
+
+      .question-row {
+        transition:
+          background-color 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .question-drop-list.cdk-drop-list-dragging
+        .question-row:not(.cdk-drag-placeholder),
+      .question-row.cdk-drag-animating {
+        transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      .question-row.cdk-drag-placeholder {
+        opacity: 0.28;
+        background: var(--teal-50);
+        box-shadow: inset 0 0 0 2px var(--teal-200);
+      }
+
+      .question-filter-grid {
+        display: grid;
+        grid-template-columns:
+          minmax(220px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr)
+          auto;
+        gap: 12px;
+        align-items: end;
+        margin-bottom: 16px;
+        padding: 14px;
+        border: 1px solid var(--primary);
+        border-radius: 8px;
+        background: var(--teal-50);
+      }
+
+      .question-filter-actions {
+        justify-content: flex-end;
+      }
+
+      .question-order-cell {
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .question-drag-handle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+        border: 1px solid var(--primary);
+        border-radius: 6px;
+        background: var(--teal-50);
+        color: var(--teal-600);
+        font: inherit;
+        font-size: 1.15rem;
+        line-height: 1;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .question-drag-handle:active {
+        cursor: grabbing;
+      }
+
+      .question-drag-handle--disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .question-drag-handle:focus-visible {
+        outline: 2px solid transparent;
+        box-shadow: 0 0 0 3px rgb(31 129 150 / 24%);
+      }
+
+      .question-drag-preview {
+        display: grid;
+        grid-template-columns: 36px 88px minmax(0, 1fr) auto;
+        gap: var(--ds-space-3);
+        align-items: center;
+        box-sizing: border-box;
+        padding: var(--ds-space-3) var(--ds-space-4);
+        overflow: hidden;
+        border: 1px solid var(--primary);
+        border-radius: var(--radius-md);
+        background: var(--bg-card);
+        color: var(--teal-950);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .question-drag-preview-handle {
+        margin-right: 0;
+        cursor: grabbing;
+      }
+
+      .question-drag-preview-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .question-drag-preview-meta {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        white-space: nowrap;
+      }
+
+      .question-order-label {
+        color: var(--ds-color-text-secondary);
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .question-step-hint {
+        margin-top: 12px;
+        color: var(--warning);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-align: right;
+      }
+
+      .publish-waiting-note {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 6px;
+        color: var(--teal-700);
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .publish-button {
+        background: var(--teal-600);
+      }
+
+      .publish-button:hover:not(:disabled) {
+        background: var(--teal-700);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .question-row,
+        .question-drop-list.cdk-drop-list-dragging
+          .question-row:not(.cdk-drag-placeholder),
+        .question-row.cdk-drag-animating {
+          transition: none;
+        }
+      }
+    `,
+  ],
 })
 export class AdminEditComponent implements OnInit {
   quizId?: number;
   isEditMode = false;
   currentTab = 1;
+  highestUnlockedTab = 1;
 
   name = "";
   description = "";
   startDate = new Date().toISOString().split("T")[0];
   endDate = new Date().toISOString().split("T")[0];
+  isPublished = false;
 
   questions: QuestionDraft[] = [];
   selectedQuestionIndices: number[] = [];
+  questionSearch = "";
+  questionTypeFilter: "" | QuestionType = "";
+  questionRequiredFilter: RequiredFilter = "";
+  questionSortBy: QuestionSortField | null = null;
+  questionSortDirection: SortDirection = "asc";
 
   // Modal State
   showQuestionModal = false;
@@ -424,8 +816,93 @@ export class AdminEditComponent implements OnInit {
   errorMessage = "";
   fieldErrors: Record<string, string> = {};
   saving = false;
+  isAdminArea = false;
+  managementBase = "/member/quizzes";
 
   getTypeLabel = getQuestionTypeLabel;
+
+  get canPreviewQuestions(): boolean {
+    return (
+      this.questions.length > 0 &&
+      this.questions.some((question) => question.need)
+    );
+  }
+
+  get isBasicSettingsComplete(): boolean {
+    return !!(
+      this.name.trim() &&
+      this.description.trim() &&
+      this.startDate &&
+      this.endDate &&
+      this.startDate <= this.endDate
+    );
+  }
+
+  get visibleQuestionRows(): Array<{
+    question: QuestionDraft;
+    originalIndex: number;
+  }> {
+    const search = this.questionSearch.trim().toLocaleLowerCase("zh-TW");
+    const rows = this.questions
+      .map((question, originalIndex) => ({ question, originalIndex }))
+      .filter(
+        ({ question }) =>
+          (!search ||
+            question.questName.toLocaleLowerCase("zh-TW").includes(search)) &&
+          (!this.questionTypeFilter ||
+            question.type === this.questionTypeFilter) &&
+          (!this.questionRequiredFilter ||
+            (this.questionRequiredFilter === "required"
+              ? question.need
+              : !question.need)),
+      );
+
+    if (!this.questionSortBy) return rows;
+    const direction = this.questionSortDirection === "asc" ? 1 : -1;
+    return rows.sort((left, right) => {
+      let compared = 0;
+      switch (this.questionSortBy) {
+        case "order":
+          compared = left.originalIndex - right.originalIndex;
+          break;
+        case "name":
+          compared = left.question.questName.localeCompare(
+            right.question.questName,
+            "zh-TW",
+          );
+          break;
+        case "type":
+          compared = this.getTypeLabel(left.question.type).localeCompare(
+            this.getTypeLabel(right.question.type),
+            "zh-TW",
+          );
+          break;
+        case "required":
+          compared = Number(left.question.need) - Number(right.question.need);
+          break;
+      }
+      return (compared || left.originalIndex - right.originalIndex) * direction;
+    });
+  }
+
+  get canDragQuestions(): boolean {
+    const naturalSort =
+      this.questionSortBy === null ||
+      (this.questionSortBy === "order" && this.questionSortDirection === "asc");
+    return (
+      naturalSort &&
+      !this.questionSearch.trim() &&
+      !this.questionTypeFilter &&
+      !this.questionRequiredFilter
+    );
+  }
+
+  trackQuestionRow(
+    _index: number,
+    row: { question: QuestionDraft; originalIndex: number },
+  ): QuestionDraft {
+    return row.question;
+  }
 
   clearFieldError(field: string): void {
     if (this.fieldErrors[field]) {
@@ -438,10 +915,12 @@ export class AdminEditComponent implements OnInit {
     private router: Router,
     private adminQuizService: AdminQuizService,
     private memberQuizService: MemberQuizService,
-    private auth: AuthService,
+    public readonly auth: AuthService,
   ) {}
 
   ngOnInit(): void {
+    this.isAdminArea = this.route.snapshot.data["managementScope"] === "admin";
+    this.managementBase = this.isAdminArea ? "/admin" : "/member/quizzes";
     const idParam = this.route.snapshot.paramMap.get("id");
     if (idParam && idParam !== "new") {
       this.quizId = +idParam;
@@ -453,7 +932,7 @@ export class AdminEditComponent implements OnInit {
   loadExistingQuiz(): void {
     if (!this.quizId) return;
     this.adminQuizService
-      .getManagedQuizDetail(this.quizId, this.auth.isAdmin)
+      .getManagedQuizDetail(this.quizId, this.isAdminArea)
       .subscribe({
         next: (res) => {
           if (res.success && res.data) {
@@ -462,7 +941,9 @@ export class AdminEditComponent implements OnInit {
             this.description = q.description;
             this.startDate = q.startDate;
             this.endDate = q.endDate;
+            this.isPublished = q.isPublished;
             this.questions = q.questions || [];
+            this.highestUnlockedTab = 3;
           }
         },
         error: (err) => {
@@ -476,7 +957,13 @@ export class AdminEditComponent implements OnInit {
 
   switchTab(tab: number): void {
     this.errorMessage = "";
+    if (tab > this.highestUnlockedTab) {
+      return;
+    }
     if ((tab === 2 || tab === 3) && !this.validateTab1()) {
+      return;
+    }
+    if (tab === 3 && !this.hasQuestionsForPreview()) {
       return;
     }
     this.currentTab = tab;
@@ -514,19 +1001,27 @@ export class AdminEditComponent implements OnInit {
 
   goToTab2(): void {
     if (this.validateTab1()) {
+      this.highestUnlockedTab = Math.max(this.highestUnlockedTab, 2);
       this.currentTab = 2;
     }
   }
 
   goToTab3(): void {
-    if (this.validateTab1()) {
-      if (this.questions.length === 0) {
-        if (!confirm("目前問卷尚未設計任何題目，確定要前往預覽確認頁嗎？")) {
-          return;
-        }
-      }
+    if (this.validateTab1() && this.hasQuestionsForPreview()) {
+      this.highestUnlockedTab = Math.max(this.highestUnlockedTab, 3);
       this.currentTab = 3;
     }
+  }
+
+  private hasQuestionsForPreview(): boolean {
+    if (this.canPreviewQuestions) {
+      return true;
+    }
+    this.errorMessage =
+      this.questions.length === 0
+        ? "請至少新增一題後再進行預覽確認。"
+        : "請將至少一題設為必填後再進行預覽確認。";
+    return false;
   }
 
   // Question Modal Management
@@ -534,7 +1029,7 @@ export class AdminEditComponent implements OnInit {
     this.editingQuestionIndex = null;
     this.modalQuestName = "";
     this.modalType = "Q";
-    this.modalNeed = false;
+    this.modalNeed = true;
     this.modalOptions = [
       { optionName: "", code: 0 },
       { optionName: "", code: 1 },
@@ -607,7 +1102,68 @@ export class AdminEditComponent implements OnInit {
       this.questions.push(questionItem);
     }
 
+    this.errorMessage = "";
     this.closeQuestionModal();
+  }
+
+  resetQuestionFilters(): void {
+    this.questionSearch = "";
+    this.questionTypeFilter = "";
+    this.questionRequiredFilter = "";
+  }
+
+  sortQuestions(field: QuestionSortField): void {
+    if (this.questionSortBy === field) {
+      this.questionSortDirection =
+        this.questionSortDirection === "asc" ? "desc" : "asc";
+    } else {
+      this.questionSortBy = field;
+      this.questionSortDirection = "asc";
+    }
+  }
+
+  questionSortIndicator(field: QuestionSortField): string {
+    if (this.questionSortBy !== field) return "↕";
+    return this.questionSortDirection === "asc" ? "↑" : "↓";
+  }
+
+  questionAriaSort(
+    field: QuestionSortField,
+  ): "ascending" | "descending" | "none" {
+    if (this.questionSortBy !== field) return "none";
+    return this.questionSortDirection === "asc" ? "ascending" : "descending";
+  }
+
+  onQuestionDrop(event: CdkDragDrop<QuestionDraft[]>): void {
+    if (
+      !this.canDragQuestions ||
+      event.previousIndex === event.currentIndex
+    ) {
+      return;
+    }
+    this.moveQuestion(event.previousIndex, event.currentIndex);
+  }
+
+  onQuestionOrderKeydown(event: KeyboardEvent, sourceIndex: number): void {
+    if (!this.canDragQuestions) return;
+    const offset =
+      event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
+    if (!offset) return;
+    const targetIndex = sourceIndex + offset;
+    if (targetIndex < 0 || targetIndex >= this.questions.length) return;
+    event.preventDefault();
+    this.moveQuestion(sourceIndex, targetIndex);
+  }
+
+  private moveQuestion(sourceIndex: number, targetIndex: number): void {
+    const selectedQuestions = this.selectedQuestionIndices
+      .map((index) => this.questions[index])
+      .filter((question): question is QuestionDraft => !!question);
+    moveItemInArray(this.questions, sourceIndex, targetIndex);
+    this.selectedQuestionIndices = selectedQuestions
+      .map((question) => this.questions.indexOf(question))
+      .filter((index) => index >= 0)
+      .sort((a, b) => a - b);
   }
 
   // Question Selection and Deletion
@@ -621,17 +1177,29 @@ export class AdminEditComponent implements OnInit {
   }
 
   isAllQuestionsSelected(): boolean {
+    const visibleIndices = this.visibleQuestionRows.map(
+      (row) => row.originalIndex,
+    );
     return (
-      this.questions.length > 0 &&
-      this.selectedQuestionIndices.length === this.questions.length
+      visibleIndices.length > 0 &&
+      visibleIndices.every((index) =>
+        this.selectedQuestionIndices.includes(index),
+      )
     );
   }
 
   toggleSelectAllQuestions(): void {
+    const visibleIndices = this.visibleQuestionRows.map(
+      (row) => row.originalIndex,
+    );
     if (this.isAllQuestionsSelected()) {
-      this.selectedQuestionIndices = [];
+      this.selectedQuestionIndices = this.selectedQuestionIndices.filter(
+        (index) => !visibleIndices.includes(index),
+      );
     } else {
-      this.selectedQuestionIndices = this.questions.map((_, i) => i);
+      this.selectedQuestionIndices = Array.from(
+        new Set([...this.selectedQuestionIndices, ...visibleIndices]),
+      ).sort((left, right) => left - right);
     }
   }
 
@@ -646,6 +1214,20 @@ export class AdminEditComponent implements OnInit {
   // Final Save to DB
   onSave(isPublished: boolean): void {
     if (!this.validateTab1()) return;
+    if (isPublished && !this.isAdminArea) {
+      this.errorMessage = "只有管理員可以發布問卷。";
+      return;
+    }
+    if (isPublished && !this.hasQuestionsForPreview()) {
+      return;
+    }
+    if (
+      !this.isAdminArea &&
+      this.isPublished &&
+      !this.hasQuestionsForPreview()
+    ) {
+      return;
+    }
 
     this.saving = true;
     this.errorMessage = "";
@@ -660,7 +1242,7 @@ export class AdminEditComponent implements OnInit {
       questions: this.questions,
     };
 
-    const request$ = this.auth.isAdmin
+    const request$ = this.isAdminArea
       ? this.adminQuizService.saveOrUpdateQuiz(payload)
       : this.memberQuizService.createMemberQuiz(payload);
 
@@ -671,7 +1253,7 @@ export class AdminEditComponent implements OnInit {
           alert(
             isPublished ? "問卷已成功儲存並發佈！" : "問卷草稿已成功儲存！",
           );
-          this.router.navigate([this.auth.managementBase]);
+          this.router.navigate([this.managementBase]);
         } else {
           this.errorMessage = res.message || "儲存失敗！";
         }
@@ -684,6 +1266,6 @@ export class AdminEditComponent implements OnInit {
   }
 
   onReturnToList(): void {
-    this.router.navigate([this.auth.managementBase]);
+    this.router.navigate([this.managementBase]);
   }
 }

@@ -6,8 +6,8 @@ import { AuthService } from './core/services/auth.service';
   selector: 'app-root',
   template: `
     <div class="app-shell">
-      <app-navbar *ngIf="showSharedNavbar"></app-navbar>
-      <main>
+      <app-navbar></app-navbar>
+      <main [class.app-main--home]="isHomePage">
         <router-outlet></router-outlet>
       </main>
     </div>
@@ -22,18 +22,22 @@ import { AuthService } from './core/services/auth.service';
       flex: 1;
       min-width: 0;
       padding-bottom: 40px;
+      background-color: var(--bg-main);
+    }
+    .app-main--home {
+      background-color: var(--ds-color-background);
     }
   `]
 })
 export class AppComponent implements OnInit {
-  constructor(private router: Router, private auth: AuthService) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   ngOnInit(): void {
     this.auth.validateStoredSession();
   }
 
-  get showSharedNavbar(): boolean {
+  get isHomePage(): boolean {
     const path = this.router.url.split('?')[0].split('#')[0];
-    return path !== '/' && path !== '/home';
+    return path === '/' || path === '/home';
   }
 }

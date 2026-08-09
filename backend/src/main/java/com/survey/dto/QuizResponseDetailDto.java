@@ -36,5 +36,6 @@ public class QuizResponseDetailDto {
         private String type; // Q, M, T
         private Boolean isRequired;
         private String answer;
+        private List<Integer> optionCodes;
     }
 }

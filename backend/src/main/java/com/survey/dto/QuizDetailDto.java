@@ -18,6 +18,7 @@ public class QuizDetailDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isPublished;
+    private QuizStatus adminStatusOverride;
     private QuizStatus status;
     private String statusLabel;
     private List<QuestionSaveDto> questions;

@@ -32,4 +32,10 @@ public class AuthController {
         service.logout(principal.getUserId());
         return ApiResponse.ok("登出成功", null);
     }
+    @PutMapping("/me/password") public ApiResponse<Void> changePassword(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody AuthDtos.ChangePasswordRequest req) {
+        service.changePassword(principal.getUser(), req);
+        return ApiResponse.ok("密碼修改成功，請重新登入", null);
+    }
 }

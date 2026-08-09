@@ -15,9 +15,9 @@ import com.survey.entity.QuizOption;
 import com.survey.repository.QuizOptionRepository;
 import com.survey.repository.QuizQuestionRepository;
 import com.survey.repository.QuizRepository;
+import com.survey.repository.QuizResponseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +35,7 @@ public class QuizManagementService {
     private final QuizRepository quizRepository;
     private final QuizQuestionRepository questionRepository;
     private final QuizOptionRepository optionRepository;
+    private final QuizResponseRepository responseRepository;
 
     /**
      * Validates start and end date range.
@@ -46,20 +47,21 @@ public class QuizManagementService {
     }
 
     @Transactional(readOnly = true)
-    public Page<QuizListDto> getAdminQuizzes(String name, LocalDate startDate, LocalDate endDate, int page, int size) {
+    public Page<QuizListDto> getAdminQuizzes(String name, LocalDate startDate, LocalDate endDate,
+                                             int page, int size, String sortBy, String sortDirection) {
         validateDateRange(startDate, endDate);
-        Pageable pageable = PageRequest.of(page, size);
-        return quizRepository.searchAdminQuizzes(name, startDate, endDate, pageable)
-                .map(this::toManagementListDto);
+        Pageable pageable = ListPageableFactory.quizzes(page, size, sortBy, sortDirection);
+        return toManagementPage(quizRepository.searchAdminQuizzes(name, startDate, endDate, pageable));
     }
 
     @Transactional(readOnly = true)
     public Page<QuizListDto> getOwnedQuizzes(Integer ownerId, String name, LocalDate startDate,
-                                              LocalDate endDate, int page, int size) {
+                                              LocalDate endDate, int page, int size,
+                                              String sortBy, String sortDirection) {
         validateDateRange(startDate, endDate);
-        Pageable pageable = PageRequest.of(page, size);
-        return quizRepository.searchOwnedQuizzes(ownerId, name, startDate, endDate, pageable)
-                .map(this::toManagementListDto);
+        Pageable pageable = ListPageableFactory.quizzes(page, size, sortBy, sortDirection);
+        return toManagementPage(quizRepository.searchOwnedQuizzes(
+                ownerId, name, startDate, endDate, pageable));
     }
 
     /**
@@ -96,7 +98,7 @@ public class QuizManagementService {
         Quiz quiz = resolveManageableQuiz(quizId, actorId, admin);
         List<QuestionSaveDto> questions = loadQuestions(quizId);
 
-        QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+        QuizStatus status = effectiveStatus(quiz);
         return QuizDetailDto.builder()
                 .id(quiz.getId())
                 .name(quiz.getName())
@@ -104,6 +106,7 @@ public class QuizManagementService {
                 .startDate(quiz.getStartDate())
                 .endDate(quiz.getEndDate())
                 .isPublished(quiz.getIsPublished())
+                .adminStatusOverride(quiz.getAdminStatusOverride())
                 .status(status)
                 .statusLabel(status.getLabel())
                 .questions(questions)
@@ -113,6 +116,11 @@ public class QuizManagementService {
     @Transactional
     public Integer saveOrUpdateQuiz(QuizSaveRequestDto req, AppUser actor, boolean admin) {
         LocalDate today = LocalDate.now();
+        boolean publishRequested = Boolean.TRUE.equals(req.getIsPublished());
+
+        if (publishRequested && !admin) {
+            throw new SecurityException("只有管理員可以發布問卷");
+        }
 
         if (req.getStartDate() == null || req.getEndDate() == null) {
             throw new IllegalArgumentException("開始時間與結束時間皆為必填！");
@@ -124,7 +132,7 @@ public class QuizManagementService {
         Quiz quiz;
         if (req.getId() != null) {
             quiz = resolveManageableQuiz(req.getId(), actor.getId(), admin);
-            QuizStatus currentStatus = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+            QuizStatus currentStatus = effectiveStatus(quiz);
             if (currentStatus == QuizStatus.IN_PROGRESS || currentStatus == QuizStatus.ENDED) {
                 throw new IllegalStateException("問卷「" + quiz.getName() + "」目前為" + currentStatus.getLabel() + "狀態，題目結構已鎖定不可修改！");
             }
@@ -136,11 +144,18 @@ public class QuizManagementService {
             }
         }
 
+        boolean effectivePublished = admin
+                ? publishRequested
+                : Boolean.TRUE.equals(quiz.getIsPublished());
+        if (effectivePublished && !hasRequiredQuestion(req.getQuestions())) {
+            throw new IllegalArgumentException("已發布問卷至少需要保留一題必填題目");
+        }
+
         quiz.setName(req.getName());
         quiz.setDescription(req.getDescription());
         quiz.setStartDate(req.getStartDate());
         quiz.setEndDate(req.getEndDate());
-        quiz.setIsPublished(Boolean.TRUE.equals(req.getIsPublished()));
+        quiz.setIsPublished(effectivePublished);
 
         Quiz savedQuiz = quizRepository.save(quiz);
 
@@ -200,6 +215,27 @@ public class QuizManagementService {
         }
     }
 
+    @Transactional
+    public QuizListDto updateAdminStatus(Integer quizId, QuizStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("請選擇問卷狀態");
+        }
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("問卷不存在"));
+
+        if (status != QuizStatus.UNPUBLISHED
+                && questionRepository.findByQuizIdOrderBySortOrderAscIdAsc(quizId).stream()
+                .noneMatch(question -> Boolean.TRUE.equals(question.getIsRequired()))) {
+            throw new IllegalArgumentException("已發布問卷至少需要保留一題必填題目");
+        }
+
+        quiz.setAdminStatusOverride(status);
+        // 公開列表沿用既有 is_published 篩選；只有未發佈狀態保持隱藏。
+        quiz.setIsPublished(status != QuizStatus.UNPUBLISHED);
+        Quiz saved = quizRepository.save(quiz);
+        return toManagementListDto(saved, (long) responseRepository.countByQuizId(saved.getId()));
+    }
+
     public Quiz resolveManageableQuiz(Integer quizId, Integer actorId, boolean admin) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("問卷不存在"));
@@ -209,8 +245,28 @@ public class QuizManagementService {
         return quiz;
     }
 
-    private QuizListDto toManagementListDto(Quiz quiz) {
-        QuizStatus status = QuizStatus.computeStatus(quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+    public QuizStatus effectiveStatus(Quiz quiz) {
+        return QuizStatus.effectiveStatus(
+                quiz.getAdminStatusOverride(), quiz.getIsPublished(), quiz.getStartDate(), quiz.getEndDate());
+    }
+
+    private Page<QuizListDto> toManagementPage(Page<Quiz> quizzes) {
+        List<Integer> ids = quizzes.getContent().stream().map(Quiz::getId).toList();
+        Map<Integer, Long> counts = ids.isEmpty()
+                ? Map.of()
+                : responseRepository.countByQuizIds(ids).stream().collect(Collectors.toMap(
+                        row -> ((Number) row[0]).intValue(),
+                        row -> ((Number) row[1]).longValue()));
+        return quizzes.map(quiz -> toManagementListDto(quiz, counts.getOrDefault(quiz.getId(), 0L)));
+    }
+
+    private boolean hasRequiredQuestion(List<QuestionSaveDto> questions) {
+        return questions != null && questions.stream()
+                .anyMatch(question -> Boolean.TRUE.equals(question.getNeed()));
+    }
+
+    private QuizListDto toManagementListDto(Quiz quiz, Long responseCount) {
+        QuizStatus status = effectiveStatus(quiz);
         boolean canEdit = (status == QuizStatus.UNPUBLISHED || status == QuizStatus.NOT_STARTED);
         boolean canViewStats = (status == QuizStatus.IN_PROGRESS || status == QuizStatus.ENDED);
 
@@ -220,12 +276,14 @@ public class QuizManagementService {
                 .startDate(quiz.getStartDate())
                 .endDate(quiz.getEndDate())
                 .isPublished(quiz.getIsPublished())
+                .adminStatusOverride(quiz.getAdminStatusOverride())
                 .status(status)
                 .statusLabel(status.getLabel())
                 .canEdit(canEdit)
                 .canViewStats(canViewStats)
                 .ownerId(quiz.getOwner() == null ? null : quiz.getOwner().getId())
                 .ownerName(quiz.getOwner() == null ? null : quiz.getOwner().getName())
+                .responseCount(responseCount)
                 .build();
     }
 }

@@ -29,8 +29,11 @@ public class FrontQuizController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(quizService.getFrontQuizzes(name, startDate, endDate, page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        return ApiResponse.ok(quizService.getFrontQuizzes(
+                name, startDate, endDate, page, size, sortBy, sortDirection));
     }
 
     @GetMapping("/{id}")
@@ -50,7 +53,7 @@ public class FrontQuizController {
             req.setEmail(user.getEmail());
         }
         return ApiResponse.ok("問卷提交成功！",
-                quizResponseService.submitResponse(req, user == null ? null : user.getId()));
+                quizResponseService.submitResponse(req, user));
     }
 
     @GetMapping("/{id}/statistics")

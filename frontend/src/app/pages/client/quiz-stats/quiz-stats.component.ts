@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { QuizService } from '../../../core/services/quiz.service';
-import { QuestionStat, QuizStatistics, canUsePieChart } from '../../../core/models/survey.model';
+import { QuizStatistics, canUsePieChart } from '../../../core/models/survey.model';
 
 @Component({
   selector: 'app-quiz-stats',
@@ -10,9 +10,9 @@ import { QuestionStat, QuizStatistics, canUsePieChart } from '../../../core/mode
       <div class="page-header">
         <div>
           <h1 class="page-title">{{ stats.quizName }} - 統計分析結果</h1>
-          <p style="color: #64748b; margin-top: 4px;">{{ stats.description }}</p>
+          <p style="color: var(--text-muted); margin-top: 4px;">{{ stats.description }}</p>
         </div>
-        <div style="background: #eff6ff; color: #1d4ed8; padding: 8px 16px; border-radius: 8px; font-weight: 700;">
+        <div style="background: var(--teal-50); color: var(--teal-700); padding: 8px 16px; border-radius: 8px; font-weight: 700;">
           總填答人數：{{ stats.totalResponses }} 人
         </div>
       </div>
@@ -24,7 +24,7 @@ import { QuestionStat, QuizStatistics, canUsePieChart } from '../../../core/mode
         <!-- Choice Question (Q / M) -->
         <div *ngIf="q.type === 'Q' || q.type === 'M'">
           <!-- Text Stats List -->
-          <div style="margin-bottom: 20px; background: #f8fafc; border-radius: 8px; padding: 12px;">
+          <div style="margin-bottom: 20px; background: var(--teal-50); border-radius: 8px; padding: 12px;">
             <div *ngFor="let opt of q.options" class="stat-text-row">
               <span class="opt-name">{{ opt.label }}</span>
               <span class="opt-count">{{ opt.count }} 票</span>
@@ -32,27 +32,28 @@ import { QuestionStat, QuizStatistics, canUsePieChart } from '../../../core/mode
             </div>
           </div>
 
-          <!-- Chart View -->
-          <app-chart-view [options]="q.options || []" [chartType]="q.chartType || 'bar'"></app-chart-view>
-
-          <!-- 多選題各項加總超過 100%，圓餅圖無意義，因此只有單選題提供切換 -->
-          <button class="btn btn-outline toggle-chart-btn" *ngIf="canUsePie(q.type)" (click)="toggleChartType(q)">
-            {{ q.chartType === 'pie' ? '切換為長條圖 📊' : '切換為圓餅圖 🥧' }}
-          </button>
+          <!-- 多選題的各選項可能同時被勾選，不適合用圓餅圖呈現。 -->
+          <app-chart-view
+            *ngIf="canUsePie(q.type)"
+            [options]="q.options || []"
+          ></app-chart-view>
         </div>
 
         <!-- Text Question (T) -->
         <div *ngIf="q.type === 'T'">
-          <div *ngIf="q.textAnswers && q.textAnswers.length > 0" style="max-height: 280px; overflow-y: auto; background: #f8fafc; border-radius: 8px; padding: 8px;">
-            <div *ngFor="let ta of q.textAnswers" style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #334155; font-style: italic;">「 {{ ta.answer }} 」</span>
-              <span *ngIf="ta.count > 1" style="background: #ef4444; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 700;">
+          <div *ngIf="q.textAnswers && q.textAnswers.length > 0" style="max-height: 280px; overflow-y: auto; background: var(--teal-50); border-radius: 8px; padding: 8px;">
+            <div *ngFor="let ta of q.textAnswers" style="padding: 10px 14px; border-bottom: 1px solid var(--teal-100); display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--teal-900); font-style: italic;">「 {{ ta.answer }} 」</span>
+              <span *ngIf="ta.count > 1" style="background: var(--teal-600); color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 700;">
                 x{{ ta.count }}
               </span>
             </div>
           </div>
-          <div *ngIf="!q.textAnswers || q.textAnswers.length === 0" style="color: #94a3b8; padding: 16px; text-align: center;">
-            暫無文字回答紀錄
+          <div *ngIf="!q.textAnswers || q.textAnswers.length === 0" style="color: var(--text-light); padding: 16px; text-align: center;">
+            <div class="empty-state-visual empty-state-visual--compact">
+              <img src="assets/illustrations/chart-1-67.png" alt="" aria-hidden="true" />
+              <span>暫無文字回答紀錄</span>
+            </div>
           </div>
         </div>
       </div>
@@ -79,12 +80,7 @@ export class QuizStatsComponent implements OnInit {
     this.quizService.getStatistics(this.quizId).subscribe(res => {
       if (res.success && res.data) {
         this.stats = res.data;
-        this.stats.questions?.forEach(q => q.chartType = canUsePieChart(q.type) ? 'pie' : 'bar');
       }
     });
-  }
-
-  toggleChartType(q: QuestionStat): void {
-    q.chartType = q.chartType === 'pie' ? 'bar' : 'pie';
   }
 }
